@@ -1,0 +1,212 @@
+from unittest.mock import patch
+
+from homeassistant import config_entries, data_entry_flow
+from homeassistant.components.climate import HVACMode
+from homeassistant.const import (
+    ATTR_AREA_ID,
+    ATTR_DEVICE_ID,
+    ATTR_ENTITY_ID,
+    CONF_DEVICE,
+    CONF_NAME,
+    CONF_TARGET,
+    CONF_TEMPERATURE_UNIT,
+    UnitOfTemperature,
+)
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
+import pytest
+
+from custom_components.climate_remote_control.const import (
+    CONF_FAN_MODES,
+    CONF_GROUPING_ATTRIBUTES,
+    CONF_HVAC_MODES,
+    CONF_MAX,
+    CONF_MIN,
+    CONF_MODE,
+    CONF_MODES,
+    CONF_SWING,
+    CONF_TEMPERATURE,
+    CONF_TEMPERATURE_STEP,
+    DOMAIN,
+    SwingMode,
+    TemperatureMode,
+)
+
+
+@pytest.fixture(autouse=True)
+def bypass_setup_fixture():
+    """Prevent setup."""
+    with patch(
+        "custom_components.climate_remote_control.async_setup_entry",
+        return_value=True,
+    ):
+        yield
+
+
+async def test_config_flow_user(hass: HomeAssistant):
+    """Test a successful config flow."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
+    assert result["step_id"] == "user"
+
+    """Configuring general info"""
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            "unique_id": "unique_id_1",
+            "name": "my air conditioner",
+            "device": "LG_12FFRR1E",
+        },
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "target"
+
+    """Configuring target"""
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"entity_id": ["remote.broadlink_1"]}
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "temperature"
+
+    # Configuring temperature.
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            "mode": "target",
+            "temperature_unit": "c",
+            "temperature_step": 0.5,
+        },
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "swing"
+
+    # Configuring swing.
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={"mode": "state", "modes": ["vertical", "on", "off"]},
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "hvac_modes"
+
+    # Configuring HVAC modes.
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"modes": ["off", "auto", "heat", "cool"]}
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "fan_modes"
+
+    # Configuring fan modes.
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            "modes": [
+                "low",
+                "medium",
+                "high",
+            ]
+        },
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "grouping_attributes"
+
+    # Configuring grouping attributes.
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            "grouping_attributes": [
+                "hvac_mode",
+                "temperature",
+                "fan_mode",
+            ]
+        },
+    )
+
+    assert result["type"] == data_entry_flow.RESULT_TYPE_CREATE_ENTRY
+    assert result["title"] == "my air conditioner"
+    assert result["context"]["unique_id"] == "unique_id_1"
+    assert result["result"]
+
+    data = result["data"]
+    assert data[CONF_NAME] == "my air conditioner"
+    assert data[CONF_DEVICE] == "LG_12FFRR1E"
+
+    target = data[CONF_TARGET]
+    assert target[ATTR_ENTITY_ID] == ["remote.broadlink_1"]
+    assert target[ATTR_DEVICE_ID] == []
+    assert target[ATTR_AREA_ID] == []
+
+    assert data[CONF_TEMPERATURE_STEP] == 0.5
+    assert data[CONF_TEMPERATURE_UNIT] == UnitOfTemperature.CELSIUS
+    temperature = data[CONF_TEMPERATURE]
+    assert temperature[CONF_MODE] == TemperatureMode.TARGET
+    assert temperature[CONF_MIN] == 16
+    assert temperature[CONF_MAX] == 30
+
+    swing = data[CONF_SWING]
+    assert swing[CONF_MODE] == SwingMode.STATE
+    assert swing[CONF_MODES] == ["vertical", "on", "off"]
+
+    hvac_modes = data[CONF_HVAC_MODES]
+    assert hvac_modes[HVACMode.OFF] == {
+        CONF_TEMPERATURE: {
+            CONF_MODE: TemperatureMode.NONE,
+            CONF_MIN: 16.0,
+            CONF_MAX: 30.0,
+        },
+    }
+    assert hvac_modes[HVACMode.AUTO] == {}
+    assert hvac_modes[HVACMode.HEAT] == {}
+    assert hvac_modes[HVACMode.COOL] == {}
+
+    assert data[CONF_FAN_MODES] == ["low", "medium", "high"]
+
+    assert data[CONF_GROUPING_ATTRIBUTES] == ["hvac_mode", "temperature", "fan_mode"]
+
+
+async def test_config_flow_empty_target(hass: HomeAssistant):
+    """Test a successful config flow."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "target"}
+    )
+
+    assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
+    assert result["step_id"] == "target"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={},
+    )
+
+    assert len(result["errors"]) == 1
+    errors = result["errors"]
+    assert errors["base"] == "target_is_empty"
+
+
+async def test_config_temperature_fahrenheit(hass: HomeAssistant):
+    """Test a parsing Fahrenheit temperature unit"""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "temperature"}
+    )
+
+    assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
+    assert result["step_id"] == "temperature"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_MODE: TemperatureMode.NONE,
+            CONF_TEMPERATURE_UNIT: "f",
+        },
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "swing"

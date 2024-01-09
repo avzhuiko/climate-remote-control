@@ -1,0 +1,141 @@
+{
+  "config": {
+    "flow_title": "Adding new AC remote control",
+    "step": {
+      "user": {
+        "title": "Device",
+        "data": {
+          "unique_id": "Unique device id",
+          "name": "Name for UI",
+          "device": "Device code"
+        },
+        "data_description": {
+          "device": "Device code which will be used for calling service \"Remote: send command\""
+        }
+      },
+      "target": {
+        "title": "Target",
+        "description": "Please select at least one target for service \"Remote: send command\"",
+        "data": {
+          "entity_id": "Entities",
+          "device_id": "Devices",
+          "area_id": "Areas"
+        }
+      },
+      "temperature": {
+        "title": "Temperature",
+        "description": "Default settings for temperature",
+        "data": {
+          "mode": "Mode",
+          "min": "Minimum target temperature",
+          "max": "Maximum target temperature",
+          "temperature_unit": "Temperature unit",
+          "temperature_step": "Temperature step"
+        }
+      },
+      "swing": {
+        "title": "Swing",
+        "data": {
+          "mode": "Mode",
+          "modes": "Available swing modes"
+        },
+        "data_description": {
+          "mode": "This defines which component will be used for controlling swing modes"
+        }
+      },
+      "hvac_modes": {
+        "title": "HVAC modes",
+        "description": "Choose applicable HVAC modes for your AC",
+        "data": {
+          "modes": "HVAC modes"
+        }
+      },
+      "fan_modes": {
+        "title": "Fan modes",
+        "description": "Choose applicable fan modes for your AC",
+        "data": {
+          "modes": "Fan modes"
+        }
+      },
+      "grouping_attributes": {
+        "title": "Grouping attributes",
+        "description": "Choose attributes which are passed to AC together when one of them changes",
+        "data": {
+          "grouping_attributes": "Grouping attributes"
+        },
+        "data_description": {
+          "grouping_attributes": "Order of selected attributes is important. It affects on command key. I recommend choose temperature as last attribute if applicable."
+        }
+      }
+    },
+    "error": {
+      "target_is_empty": "Please select at least one target"
+    }
+  },
+  "selector": {
+    "temperature_mode": {
+      "options": {
+        "none": "None",
+        "target": "Target",
+        "range": "Target range"
+      }
+    },
+    "swing_mode": {
+      "options": {
+        "none": "None",
+        "toggle": "Toggle",
+        "state": "State"
+      }
+    },
+    "swing_state": {
+      "options": {
+        "on": "On",
+        "off": "Off",
+        "both": "Both",
+        "vertical": "Vertical",
+        "horizontal": "Horizontal"
+      }
+    },
+    "temperature_unit": {
+      "options": {
+        "c": "Celsius",
+        "f": "Fahrenheit"
+      }
+    },
+    "hvac_mode": {
+      "options": {
+        "off": "Off",
+        "heat": "Heat",
+        "cool": "Cool",
+        "heat_cool": "Heat cool",
+        "auto": "Auto",
+        "dry": "Dry",
+        "fan_only": "Fan only"
+      }
+    },
+    "fan_mode": {
+      "options": {
+        "on": "On",
+        "off": "Off",
+        "auto": "Auto",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "top": "Top",
+        "middle": "Middle",
+        "focus": "Focus",
+        "diffuse": "Diffuse"
+      }
+    },
+    "grouping_attribute": {
+      "options": {
+        "hvac_mode": "HVAC mode",
+        "fan_mode": "Fan mode",
+        "swing_mode": "Swing mode",
+        "temperature": "Temperature",
+        "temperature_range": "Temperature range",
+        "humidity": "Humidity"
+      }
+    }
+  }
+}

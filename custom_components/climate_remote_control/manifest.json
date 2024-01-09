@@ -1,0 +1,12 @@
+{
+  "domain": "climate_remote_control",
+  "name": "Climate remote control",
+  "codeowners": ["@avzhuiko"],
+  "config_flow": true,
+  "documentation": "https://github.com/avzhuiko/climate-remote-control/",
+  "integration_type": "hub",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/avzhuiko/climate-remote-control/issues",
+  "requirements": [],
+  "version": "0.0.1"
+}
