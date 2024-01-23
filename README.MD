@@ -71,6 +71,35 @@ screen. Now you press increase temperature button on remote control, but AC didn
 transmitter by your hand). After that you decide increase fan speed and now your AC with 26C, high fan and heat mode.
 That happens because temperature, fan speed and HVAC mode are sent together in one command.
 
+# Commands
+
+When you change climate parameter the integration tries to find command for sending via HA service "Remote: send
+command". You can find formats for parameters below:
+
+| Parameter         | Format                                                                                       | Example             |
+| ----------------- | -------------------------------------------------------------------------------------------- | ------------------- |
+| HVAC mode         | mode:\<selected HVAC mode\>                                                                  | mode:heat           |
+| Fan               | fan:\<selected fan mode\>                                                                    | fan:medium          |
+| Swing             | swing:\<selected swing mode\>                                                                | swing:vertical      |
+| Temperature       | temp:\<target temperature value with precision 1\>                                           | temp:24.0           |
+| Temperature range | temprange:<low temperature value with precision 1>:<high temperature value with precision 1> | temprange:22.0:24.0 |
+| Humidity (TBD)    | humid:\<target humidity level\>                                                              | humid:50            |
+
+## Command structure
+
+If changed parameter belongs to grouping attributes, all parameters from grouping attributes will be concatenated via
+_underscore_. Ex: mode:heat_fan:medium_temp:24.0 for grouping attributes=[HVAC mode, Fan mode, Target temperature].  
+**NOTE:** Order in grouping attributes is important because of concatenation order.
+
+## Learning commands
+
+See [Broadlink learning commands](https://www.home-assistant.io/integrations/broadlink/#learning-commands).
+
+## Logs
+
+If command hasn't been learned, the integration will log it with WARN level.  
+Ex: Command "mode:heat_fan:low_temp:25.0" for device "LG_ES-H126LLA0" not found. You should learn it.
+
 ---
 
 [paypal]: https://www.paypal.com/donate/?hosted_button_id=BH5J26BSR2734
