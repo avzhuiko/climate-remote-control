@@ -17,6 +17,7 @@ from homeassistant.data_entry_flow import FlowResultType
 import pytest
 
 from custom_components.climate_remote_control.const import (
+    CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID,
     CONF_FAN_MODES,
     CONF_GROUPING_ATTRIBUTES,
     CONF_HVAC_MODES,
@@ -130,6 +131,15 @@ async def test_config_flow_user(hass: HomeAssistant):
         },
     )
 
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "sensors"
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            "current_temperature_sensor_entity_id": "sensor.sensor_temperature"
+        },
+    )
+
     assert result["type"] == data_entry_flow.RESULT_TYPE_CREATE_ENTRY
     assert result["title"] == "my air conditioner"
     assert result["context"]["unique_id"] == "unique_id_1"
@@ -171,6 +181,10 @@ async def test_config_flow_user(hass: HomeAssistant):
 
     assert data[CONF_GROUPING_ATTRIBUTES] == ["hvac_mode", "temperature", "fan_mode"]
 
+    assert (
+        data[CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID] == "sensor.sensor_temperature"
+    )
+
 
 async def test_config_flow_empty_target(hass: HomeAssistant):
     """Test a successful config flow."""
@@ -189,6 +203,25 @@ async def test_config_flow_empty_target(hass: HomeAssistant):
     assert len(result["errors"]) == 1
     errors = result["errors"]
     assert errors["base"] == "target_is_empty"
+
+
+async def test_config_flow_empty_hvac_modes(hass: HomeAssistant):
+    """Test a successful config flow."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "hvac_modes"}
+    )
+
+    assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
+    assert result["step_id"] == "hvac_modes"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={},
+    )
+
+    assert len(result["errors"]) == 1
+    errors = result["errors"]
+    assert errors["base"] == "hvac_modes_is_empty"
 
 
 async def test_config_temperature_fahrenheit(hass: HomeAssistant):

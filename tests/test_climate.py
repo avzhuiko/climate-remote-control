@@ -57,7 +57,7 @@ async def test_get_attr_command(
 async def test_get_temperature_conf(
     climate_remote_control: AcRemote,
 ):
-    climate_remote_control.hvac_modes_conf = {
+    climate_remote_control._hvac_modes_conf = {
         HVACMode.OFF: {
             ATTR_TEMPERATURE: {
                 CONF_MODE: TemperatureMode.NONE,
@@ -97,7 +97,7 @@ async def test_get_grouping_attributes(
     climate_remote_control: AcRemote,
 ):
     # all attributes
-    climate_remote_control.grouping_attributes = [
+    climate_remote_control._grouping_attributes = [
         ATTR_HVAC_MODE,
         ATTR_TEMPERATURE,
         ATTR_FAN_MODE,
@@ -126,7 +126,7 @@ async def test_get_grouping_attributes(
     ]
 
     # test target temperature range
-    climate_remote_control.grouping_attributes = [
+    climate_remote_control._grouping_attributes = [
         ATTR_HVAC_MODE,
         ATTR_TEMPERATURE_RANGE,
         ATTR_FAN_MODE,

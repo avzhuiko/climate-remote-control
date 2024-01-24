@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 from homeassistant.components.climate import HVAC_MODES, HVACMode
+from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.config_entries import ConfigFlow
 from homeassistant.const import (
     ATTR_AREA_ID,
@@ -22,6 +23,7 @@ from homeassistant.helpers.selector import SelectSelectorMode
 import voluptuous as vol
 
 from .const import (
+    CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID,
     CONF_FAN_MODES,
     CONF_GROUPING_ATTRIBUTES,
     CONF_HVAC_MODES,
@@ -209,7 +211,20 @@ class ACRemoteConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_hvac_modes(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        if user_input is None:
+        errors = {}
+        if user_input is not None:
+            selected_modes = user_input[CONF_MODES]
+            if len(selected_modes) == 0:
+                errors["base"] = "hvac_modes_is_empty"
+            else:
+                self.result[CONF_HVAC_MODES] = {}
+                for mode in selected_modes:
+                    self.result[CONF_HVAC_MODES][mode] = {}
+                    if mode == HVACMode.OFF or mode == HVACMode.FAN_ONLY:
+                        self.result[CONF_HVAC_MODES][mode][
+                            CONF_TEMPERATURE
+                        ] = TEMPERATURE_SCHEMA({CONF_MODE: TemperatureMode.NONE})
+        if user_input is None or bool(errors):
             return self.async_show_form(
                 step_id="hvac_modes",
                 data_schema=vol.Schema(
@@ -224,16 +239,8 @@ class ACRemoteConfigFlow(ConfigFlow, domain=DOMAIN):
                         ),
                     }
                 ),
+                errors=errors,
             )
-
-        selected_modes = user_input[CONF_MODES]
-        self.result[CONF_HVAC_MODES] = {}
-        for mode in selected_modes:
-            self.result[CONF_HVAC_MODES][mode] = {}
-            if mode == HVACMode.OFF or mode == HVACMode.FAN_ONLY:
-                self.result[CONF_HVAC_MODES][mode][
-                    CONF_TEMPERATURE
-                ] = TEMPERATURE_SCHEMA({CONF_MODE: TemperatureMode.NONE})
         return await self.async_step_fan_modes()
 
     async def async_step_fan_modes(
@@ -282,6 +289,32 @@ class ACRemoteConfigFlow(ConfigFlow, domain=DOMAIN):
             )
 
         self.result[CONF_GROUPING_ATTRIBUTES] = user_input[CONF_GROUPING_ATTRIBUTES]
+        return await self.async_step_sensors()
+
+    async def async_step_sensors(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        if user_input is None:
+            return self.async_show_form(
+                step_id="sensors",
+                data_schema=vol.Schema(
+                    {
+                        vol.Optional(
+                            CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID, default=None
+                        ): selector.EntitySelector(
+                            selector.EntitySelectorConfig(
+                                multiple=False,
+                                domain=Platform.SENSOR,
+                                device_class=SensorDeviceClass.TEMPERATURE,
+                            )
+                        ),
+                    }
+                ),
+            )
+
+        self.result[CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID] = user_input[
+            CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID
+        ]
         return self.async_create_entry(
             title=self.result[CONF_NAME],
             data=self.result,
