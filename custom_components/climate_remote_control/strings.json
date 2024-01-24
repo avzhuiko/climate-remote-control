@@ -66,10 +66,18 @@
         "data_description": {
           "grouping_attributes": "Order of selected attributes is important. It affects on command key. I recommend choose temperature as last attribute if applicable."
         }
+      },
+      "sensors": {
+        "title": "Sensors",
+        "description": "Here you can choose sensors which will be used for current climate state",
+        "data": {
+          "current_temperature_sensor_entity_id": "Temperature sensor"
+        }
       }
     },
     "error": {
-      "target_is_empty": "Please select at least one target"
+      "target_is_empty": "Please select at least one target",
+      "hvac_modes_is_empty": "Please select at least one HVAC mode"
     }
   },
   "selector": {

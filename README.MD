@@ -43,6 +43,10 @@ This method allows you to get updates directly on the HACS main page
 1. Restart Home Assistant
 1. In the HA UI go to "Configuration" -> "Integrations" click "+" and search for "Climate remote control"
 
+# Configuration
+
+Just follow config flow
+
 # Modes description
 
 ## Temperature
