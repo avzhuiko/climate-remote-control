@@ -1,6 +1,6 @@
 # Climate remote control
 
-[![codecov](https://codecov.io/gh/avzhuiko/ac-remote/graph/badge.svg?token=6OX82SOJTB)](https://codecov.io/gh/avzhuiko/ac-remote)
+[![codecov](https://codecov.io/gh/avzhuiko/climate-remote-control/graph/badge.svg?token=6OX82SOJTB)](https://codecov.io/gh/avzhuiko/climate-remote-control)
 [![Donate with PayPal][paypalbadge]][paypal]
 [![Donate with Buy Me A Coffee][buymeacoffeebadge]][buymeacoffee]
 

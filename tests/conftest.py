@@ -134,7 +134,7 @@ def config_entry(
 async def climate_remote_control(
     hass: HomeAssistant, config_entry: MockConfigEntry, mocker: MockerFixture
 ) -> AcRemote:
-    mock_async_add_devices = mocker.async_stub("async_add_devices")
+    mock_async_add_devices = mocker.stub("async_add_devices")
     await climate_async_setup_entry(hass, config_entry, mock_async_add_devices)
     devices = mock_async_add_devices.call_args_list[0].args[0]
     climate = devices[0]

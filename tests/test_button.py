@@ -49,7 +49,7 @@ async def test_none_mode(
         },
     )
 
-    mock_async_add_devices = mocker.async_stub("async_add_devices")
+    mock_async_add_devices = mocker.stub("async_add_devices")
     await async_setup_entry(hass, config_entry, mock_async_add_devices)
     await hass.async_block_till_done()
 
@@ -80,7 +80,7 @@ async def test_toggle_mode(
         },
     )
 
-    mock_async_add_devices = mocker.async_stub("async_add_devices")
+    mock_async_add_devices = mocker.stub("async_add_devices")
     await async_setup_entry(hass, config_entry, mock_async_add_devices)
     await hass.async_block_till_done()
     mock_async_add_devices.assert_called_once()
@@ -109,7 +109,7 @@ async def test_state_mode(
         },
     )
 
-    mock_async_add_devices = mocker.async_stub("async_add_devices")
+    mock_async_add_devices = mocker.stub("async_add_devices")
     await async_setup_entry(hass, config_entry, mock_async_add_devices)
     await hass.async_block_till_done()
     mock_async_add_devices.assert_called_once()
