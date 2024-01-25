@@ -30,6 +30,7 @@ from homeassistant.const import (
 from homeassistant.core import callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import (
     ATTR_TEMPERATURE_RANGE,
@@ -91,7 +92,7 @@ async def async_setup_entry(hass, entry, async_add_devices) -> None:
     async_add_devices(devices)
 
 
-class AcRemote(ClimateEntity):
+class AcRemote(ClimateEntity, RestoreEntity):
     """Representation of climate entity"""
 
     _attr_has_entity_name = True
@@ -299,9 +300,31 @@ class AcRemote(ClimateEntity):
         except ValueError as ex:
             _LOGGER.error("Unable to update from temperature sensor: %s", ex)
 
+    @callback
+    def _async_restore_last_state(self, last_state) -> None:
+        """Restore previous state."""
+        attributes = last_state.attributes
+        self._attr_hvac_mode = last_state.state
+        if ATTR_FAN_MODE in attributes:
+            self._attr_fan_mode = attributes[ATTR_FAN_MODE]
+        if ATTR_SWING_MODE in attributes:
+            self._attr_swing_mode = attributes[ATTR_SWING_MODE]
+        if ATTR_TEMPERATURE in attributes:
+            self._attr_target_temperature = attributes[ATTR_TEMPERATURE]
+        if ATTR_TARGET_TEMP_LOW in attributes:
+            self._attr_target_temperature_low = attributes[ATTR_TARGET_TEMP_LOW]
+        if ATTR_TARGET_TEMP_HIGH in attributes:
+            self._attr_target_temperature_high = attributes[ATTR_TARGET_TEMP_HIGH]
+        self._fill_temperature_attributes(self._get_temperature_conf())
+
     async def async_added_to_hass(self):
-        """Run when entity about to be added."""
+        """Run when about to be added to hass."""
         await super().async_added_to_hass()
+
+        last_state = await self.async_get_last_state()
+
+        if last_state is not None:
+            self._async_restore_last_state(last_state)
 
         """Subscribe to current temperature sensor updates"""
         if self._current_temperature_sensor_entity_id:
