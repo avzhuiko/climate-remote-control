@@ -69,9 +69,11 @@ async def async_setup_entry(hass, entry, async_add_devices) -> None:
     grouping_attributes = data[CONF_GROUPING_ATTRIBUTES]
     temperature = data[CONF_TEMPERATURE]
     device = data[CONF_DEVICE]
-    current_temperature_sensor_entity_id = data[
-        CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID
-    ]
+    current_temperature_sensor_entity_id = None
+    if CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID in data:
+        current_temperature_sensor_entity_id = data[
+            CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID
+        ]
     devices.append(
         AcRemote(
             unique_id=unique_id,
