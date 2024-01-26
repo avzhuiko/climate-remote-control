@@ -1,6 +1,12 @@
 # Climate remote control
 
+![Code style: Black](https://img.shields.io/badge/code%20style-black-black)
+![Home Assistant version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Favzhuiko%2Fclimate-remote-control%2Fmain%2Fhacs.json&query=%24.homeassistant&label=Home%20Assistant&color=%2303a9f4)
+
 [![codecov](https://codecov.io/gh/avzhuiko/climate-remote-control/graph/badge.svg?token=6OX82SOJTB)](https://codecov.io/gh/avzhuiko/climate-remote-control)
+![HACS Validate Status](https://img.shields.io/github/actions/workflow/status/avzhuiko/climate-remote-control/hacs-validate.yml?label=HACS%20validation)
+![Hassfest Validate Status](https://img.shields.io/github/actions/workflow/status/avzhuiko/climate-remote-control/hassfest-validate.yml?label=Hassfest%20validation)
+
 [![Donate with PayPal][paypalbadge]][paypal]
 [![Donate with Buy Me A Coffee][buymeacoffeebadge]][buymeacoffee]
 
@@ -45,7 +51,7 @@ This method allows you to get updates directly on the HACS main page
 
 # Configuration
 
-Just follow config flow
+For adding new device you need fill only 2 fields. After that you'll be able to configure (or reconfigure) it.
 
 # Modes description
 

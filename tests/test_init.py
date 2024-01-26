@@ -10,7 +10,6 @@ async def test_setup(
     hass: HomeAssistant,
     config_entry: MockConfigEntry,
 ):
-    config_entry.add_to_hass(hass)
     assert await async_setup_component(hass, DOMAIN, {}) is True
     await hass.async_block_till_done()
     assert entity_registry.async_get(hass).entities["climate.name_test"]
