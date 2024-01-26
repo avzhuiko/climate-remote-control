@@ -1,12 +1,21 @@
 {
+  "title": "Climate remote control",
   "config": {
-    "flow_title": "Adding new AC remote control",
     "step": {
       "user": {
         "title": "Device",
         "data": {
           "unique_id": "Unique device id",
-          "name": "Name for UI",
+          "name": "Name for UI"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Device",
+        "data": {
           "device": "Device code"
         },
         "data_description": {
@@ -45,14 +54,14 @@
       },
       "hvac_modes": {
         "title": "HVAC modes",
-        "description": "Choose applicable HVAC modes for your AC",
+        "description": "Choose applicable HVAC modes for your climate",
         "data": {
           "modes": "HVAC modes"
         }
       },
       "fan_modes": {
         "title": "Fan modes",
-        "description": "Choose applicable fan modes for your AC",
+        "description": "Choose applicable fan modes for your climate",
         "data": {
           "modes": "Fan modes"
         }

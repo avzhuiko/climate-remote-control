@@ -1,4 +1,4 @@
-from typing import Any
+import uuid
 
 from homeassistant.components.climate import (
     ATTR_FAN_MODE,
@@ -55,9 +55,9 @@ def auto_enable_custom_integrations(enable_custom_integrations):
 
 
 @pytest.fixture
-def config_entry_options() -> dict[str, Any] | None:
-    """Fixture to set initial config entry options."""
-    return None
+def config_entry_id() -> str:
+    """Fixture that returns the default config entry unique id."""
+    return str(uuid.uuid4())
 
 
 @pytest.fixture
@@ -74,18 +74,19 @@ def remote_entity_id() -> str:
 
 @pytest.fixture
 def config_entry(
+    hass: HomeAssistant,
+    config_entry_id: str,
     config_entry_unique_id: str,
     remote_entity_id: str,
-    config_entry_options: dict[str, Any] | None,
 ) -> MockConfigEntry:
     """Fixture to create a config entry for the integration."""
-    return MockConfigEntry(
+    config_entry = MockConfigEntry(
         domain=DOMAIN,
+        entry_id=config_entry_id,
         unique_id=config_entry_unique_id,
         title="name_test",
-        data={
-            CONF_UNIQUE_ID: "test",
-            CONF_NAME: "name_test",
+        data={CONF_UNIQUE_ID: config_entry_unique_id, CONF_NAME: "name_test"},
+        options={
             CONF_DEVICE: "test",
             CONF_TARGET: {
                 ATTR_ENTITY_ID: [remote_entity_id],
@@ -126,8 +127,9 @@ def config_entry(
             ],
             CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID: "sensor.sensor_temperature",
         },
-        options=config_entry_options,
     )
+    config_entry.add_to_hass(hass)
+    return config_entry
 
 
 @pytest.fixture

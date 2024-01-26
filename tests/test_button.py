@@ -1,13 +1,6 @@
 from homeassistant.components.climate import SWING_VERTICAL
 from homeassistant.components.remote import SERVICE_SEND_COMMAND
-from homeassistant.const import (
-    ATTR_ENTITY_ID,
-    CONF_DEVICE,
-    CONF_NAME,
-    CONF_TARGET,
-    CONF_UNIQUE_ID,
-    Platform,
-)
+from homeassistant.const import ATTR_ENTITY_ID, CONF_DEVICE, CONF_TARGET, Platform
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
@@ -38,9 +31,7 @@ async def test_none_mode(
         domain=DOMAIN,
         unique_id=config_entry_unique_id,
         title="name_test",
-        data={
-            CONF_UNIQUE_ID: config_entry_unique_id,
-            CONF_NAME: "name_test",
+        options={
             CONF_DEVICE: "test",
             CONF_TARGET: {ATTR_ENTITY_ID: ["remote.entity_id_test"]},
             CONF_SWING: {
@@ -66,9 +57,7 @@ async def test_toggle_mode(
         domain=DOMAIN,
         unique_id=config_entry_unique_id,
         title="name_test",
-        data={
-            CONF_UNIQUE_ID: config_entry_unique_id,
-            CONF_NAME: "name_test",
+        options={
             CONF_DEVICE: "test",
             CONF_TARGET: {ATTR_ENTITY_ID: ["remote.entity_id_test"]},
             CONF_SWING: {
@@ -98,9 +87,7 @@ async def test_state_mode(
         domain=DOMAIN,
         unique_id=config_entry_unique_id,
         title="name_test",
-        data={
-            CONF_UNIQUE_ID: config_entry_unique_id,
-            CONF_NAME: "name_test",
+        options={
             CONF_DEVICE: "test",
             CONF_TARGET: {ATTR_ENTITY_ID: ["remote.entity_id_test"]},
             CONF_SWING: {

@@ -1,33 +1,42 @@
 """Platform for button integration."""
-from __future__ import annotations
 
 import logging
 from typing import Any
 
+from homeassistant import config_entries
 from homeassistant.components.button import ButtonEntity
 from homeassistant.components.remote import SERVICE_SEND_COMMAND
-from homeassistant.const import CONF_DEVICE, CONF_NAME, CONF_TARGET, Platform
+from homeassistant.const import CONF_DEVICE, CONF_TARGET, Platform
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import CONF_MODE, CONF_MODES, CONF_SWING, DOMAIN, SwingMode
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass, entry, async_add_devices) -> None:
-    """Set up"""
-
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: config_entries.ConfigEntry,
+    async_add_devices: AddEntitiesCallback,
+) -> None:
+    """Set up buttons"""
+    if config_entry.options is None or config_entry.options == {}:
+        _LOGGER.debug("Climate remote control platform is not configured, skip.")
+        return
     devices = []
 
-    data = entry.data
+    options = config_entry.options
 
-    target = data[CONF_TARGET]
-    device = data[CONF_DEVICE]
-    swing = data[CONF_SWING]
+    unique_id = config_entry.unique_id
+    name = config_entry.title
+
+    target = options[CONF_TARGET]
+    device = options[CONF_DEVICE]
+    swing = options[CONF_SWING]
     if swing[CONF_MODE] == SwingMode.TOGGLE:
         for mode in swing[CONF_MODES]:
-            unique_id = entry.unique_id
-            name = data[CONF_NAME]
             devices.append(
                 AcRemoteSwingToggle(
                     unique_id=unique_id,

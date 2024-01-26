@@ -1,9 +1,9 @@
 """Platform for light integration."""
-from __future__ import annotations
 
 import logging
 from typing import Any
 
+from homeassistant import config_entries
 from homeassistant.components.climate import (
     ATTR_FAN_MODE,
     ATTR_HUMIDITY,
@@ -20,16 +20,16 @@ from homeassistant.components.remote import DOMAIN as RM_DOMAIN
 from homeassistant.components.remote import SERVICE_SEND_COMMAND
 from homeassistant.const import (
     CONF_DEVICE,
-    CONF_NAME,
     CONF_TARGET,
     CONF_TEMPERATURE_UNIT,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
     UnitOfTemperature,
 )
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, State, callback
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_track_state_change
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import (
@@ -51,47 +51,17 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass, entry, async_add_devices) -> None:
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: config_entries.ConfigEntry,
+    async_add_devices: AddEntitiesCallback,
+) -> None:
     """Set up climate device"""
+    if config_entry.options is None or config_entry.options == {}:
+        _LOGGER.debug("Climate remote control platform is not configured, skip.")
+        return
 
-    devices = []
-
-    data = entry.data
-
-    unique_id = entry.unique_id
-    name = data[CONF_NAME]
-    target = data[CONF_TARGET]
-    temperature_unit = data[CONF_TEMPERATURE_UNIT]
-    temperature_step = data[CONF_TEMPERATURE_STEP]
-    hvac_modes = data[CONF_HVAC_MODES]
-    fan_modes = data[CONF_FAN_MODES]
-    swing = data[CONF_SWING]
-    grouping_attributes = data[CONF_GROUPING_ATTRIBUTES]
-    temperature = data[CONF_TEMPERATURE]
-    device = data[CONF_DEVICE]
-    current_temperature_sensor_entity_id = None
-    if CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID in data:
-        current_temperature_sensor_entity_id = data[
-            CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID
-        ]
-    devices.append(
-        AcRemote(
-            unique_id=unique_id,
-            name=name,
-            grouping_attributes=grouping_attributes,
-            temperature_unit=temperature_unit,
-            hvac_modes=hvac_modes,
-            fan_modes=fan_modes,
-            swing=swing,
-            target=target,
-            device=device,
-            temperature=temperature,
-            temperature_step=temperature_step,
-            current_temperature_sensor_entity_id=current_temperature_sensor_entity_id,
-        )
-    )
-
-    async_add_devices(devices)
+    async_add_devices([AcRemote(config_entry)])
 
 
 class AcRemote(ClimateEntity, RestoreEntity):
@@ -100,6 +70,7 @@ class AcRemote(ClimateEntity, RestoreEntity):
     _attr_has_entity_name = True
     _attr_name = None
 
+    _attr_target_temperature_step = 1.0
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
 
     _attr_hvac_modes = [HVACMode.OFF]
@@ -116,33 +87,30 @@ class AcRemote(ClimateEntity, RestoreEntity):
 
     def __init__(
         self,
-        unique_id,
-        name,
-        target,
-        device: str,
-        hvac_modes,
-        swing,
-        temperature,
-        fan_modes: [str],
-        grouping_attributes: [str],
-        temperature_unit: UnitOfTemperature = UnitOfTemperature.CELSIUS,
-        temperature_step: float = 1.0,
-        current_temperature_sensor_entity_id: str | None = None,
+        config_entry: config_entries.ConfigEntry,
     ) -> None:
         """Initialize."""
-        self._grouping_attributes = grouping_attributes
-        self._temperature_conf = temperature
-        self._hvac_modes_conf = hvac_modes
-        self._device = device
+        options = config_entry.options
+        unique_id = config_entry.unique_id
         self._attr_unique_id = unique_id
-        self._attr_temperature_unit = temperature_unit
-        self._attr_hvac_modes = list(HVACMode(x) for x in hvac_modes.keys())
+
+        self._grouping_attributes = options[CONF_GROUPING_ATTRIBUTES]
+        self._temperature_conf = options[CONF_TEMPERATURE]
+        self._hvac_modes_conf = options[CONF_HVAC_MODES]
+        self._device = options[CONF_DEVICE]
+        temperature_unit = options[CONF_TEMPERATURE_UNIT]
+        if temperature_unit == "c":
+            self._attr_temperature_unit = UnitOfTemperature.CELSIUS
+        if temperature_unit == "f":
+            self._attr_temperature_unit = UnitOfTemperature.FAHRENHEIT
+        self._attr_hvac_modes = list(HVACMode(x) for x in self._hvac_modes_conf.keys())
         self._attr_hvac_mode = self._attr_hvac_modes[0]
 
-        self._fill_temperature_attributes(temperature)
-        if temperature[CONF_MODE] != TemperatureMode.NONE:
-            self._attr_target_temperature_step = temperature_step
-        # set fan modes
+        self._fill_temperature_attributes(self._temperature_conf)
+        self._attr_target_temperature_step = options[CONF_TEMPERATURE_STEP]
+
+        # Configure fan modes
+        fan_modes = options[CONF_FAN_MODES]
         self._attr_fan_modes = fan_modes
         if len(fan_modes) > 0:
             self._attr_fan_mode = fan_modes[0]
@@ -150,7 +118,8 @@ class AcRemote(ClimateEntity, RestoreEntity):
         else:
             self._attr_fan_mode = None
 
-        # set swing modes
+        # Configure swing modes
+        swing = options[CONF_SWING]
         self._attr_swing_modes = swing[CONF_MODES]
         if swing[CONF_MODE] == SwingMode.STATE:
             if len(self._attr_swing_modes) > 0:
@@ -158,15 +127,18 @@ class AcRemote(ClimateEntity, RestoreEntity):
                 self._attr_supported_features |= ClimateEntityFeature.SWING_MODE
         else:
             self._attr_swing_mode = None
-        self._target = target
-        self._current_temperature_sensor_entity_id = (
-            current_temperature_sensor_entity_id
-        )
+        self._target = options[CONF_TARGET]
+
+        # Configure sensors
+        if CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID in options:
+            self._current_temperature_sensor_entity_id = options[
+                CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID
+            ]
 
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, unique_id)},
             manufacturer="avzhuiko",
-            name=name,
+            name=config_entry.title,
         )
 
     def _fill_temperature_attributes(self, temperature):
@@ -292,10 +264,17 @@ class AcRemote(ClimateEntity, RestoreEntity):
                 self._device,
             )
 
+    async def _async_update_current_temperature_changed(
+        self, entity_id, old_state, new_state
+    ):
+        """Handle temperature sensor changes."""
+        self._async_update_current_temperature(new_state)
+
     @callback
-    def _async_update_current_temperature(self, event):
+    def _async_update_current_temperature(self, new_state: State | None):
         """Update current temperature."""
-        new_state = event.data.get("new_state")
+        if new_state is None:
+            return
         try:
             if new_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
                 self._attr_current_temperature = float(new_state.state)
@@ -330,20 +309,16 @@ class AcRemote(ClimateEntity, RestoreEntity):
 
         """Subscribe to current temperature sensor updates"""
         if self._current_temperature_sensor_entity_id:
-            async_track_state_change_event(
+            async_track_state_change(
                 self.hass,
                 self._current_temperature_sensor_entity_id,
-                self._async_update_current_temperature,
+                self._async_update_current_temperature_changed,
             )
 
             current_temperature_sensor_state = self.hass.states.get(
                 self._current_temperature_sensor_entity_id
             )
-            if (
-                current_temperature_sensor_state
-                and current_temperature_sensor_state.state != STATE_UNKNOWN
-            ):
-                self._async_update_current_temperature(current_temperature_sensor_state)
+            self._async_update_current_temperature(current_temperature_sensor_state)
 
     def turn_on(self):
         self._call_remote_command("on")
