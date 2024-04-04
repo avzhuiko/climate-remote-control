@@ -32,6 +32,7 @@ from custom_components.climate_remote_control.climate import (
 )
 from custom_components.climate_remote_control.climate import AcRemote
 from custom_components.climate_remote_control.const import (
+    CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID,
     CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID,
     CONF_FAN_MODES,
     CONF_GROUPING_ATTRIBUTES,
@@ -126,6 +127,7 @@ def config_entry(
                 ATTR_TEMPERATURE,
             ],
             CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID: "sensor.sensor_temperature",
+            CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID: "sensor.sensor_humidity",
         },
     )
     config_entry.add_to_hass(hass)
