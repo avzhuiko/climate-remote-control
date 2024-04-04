@@ -34,6 +34,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import (
     ATTR_TEMPERATURE_RANGE,
+    CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID,
     CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID,
     CONF_FAN_MODES,
     CONF_GROUPING_ATTRIBUTES,
@@ -133,6 +134,10 @@ class AcRemote(ClimateEntity, RestoreEntity):
         if CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID in options:
             self._current_temperature_sensor_entity_id = options[
                 CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID
+            ]
+        if CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID in options:
+            self._current_humidity_sensor_entity_id = options[
+                CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID
             ]
 
         self._attr_device_info = DeviceInfo(
@@ -270,6 +275,12 @@ class AcRemote(ClimateEntity, RestoreEntity):
         """Handle temperature sensor changes."""
         self._async_update_current_temperature(new_state)
 
+    async def _async_update_current_humidity_changed(
+        self, entity_id, old_state, new_state
+    ):
+        """Handle humidity sensor changes."""
+        self._async_update_current_humidity(new_state)
+
     @callback
     def _async_update_current_temperature(self, new_state: State | None):
         """Update current temperature."""
@@ -280,6 +291,17 @@ class AcRemote(ClimateEntity, RestoreEntity):
                 self._attr_current_temperature = float(new_state.state)
         except ValueError as ex:
             _LOGGER.error("Unable to update from temperature sensor: %s", ex)
+
+    @callback
+    def _async_update_current_humidity(self, new_state: State | None):
+        """Update current humidity."""
+        if new_state is None:
+            return
+        try:
+            if new_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+                self._attr_current_humidity = int(float(new_state.state))
+        except ValueError as ex:
+            _LOGGER.error("Unable to update from humidity sensor: %s", ex)
 
     @callback
     def _async_restore_last_state(self, last_state) -> None:
@@ -320,11 +342,21 @@ class AcRemote(ClimateEntity, RestoreEntity):
             )
             self._async_update_current_temperature(current_temperature_sensor_state)
 
-    def turn_on(self):
-        self._call_remote_command("on")
+        """Subscribe to current humidity sensor updates"""
+        if (
+            hasattr(self, "_current_humidity_sensor_entity_id")
+            and self._current_humidity_sensor_entity_id
+        ):
+            async_track_state_change(
+                self.hass,
+                self._current_humidity_sensor_entity_id,
+                self._async_update_current_humidity_changed,
+            )
 
-    def turn_off(self):
-        self._call_remote_command("off")
+            current_humidity_sensor_state = self.hass.states.get(
+                self._current_humidity_sensor_entity_id
+            )
+            self._async_update_current_humidity(current_humidity_sensor_state)
 
     def set_temperature(self, **kwargs: Any) -> None:
         temperature: float | None = kwargs.get(ATTR_TEMPERATURE)
@@ -353,10 +385,10 @@ class AcRemote(ClimateEntity, RestoreEntity):
         self._attr_hvac_mode = hvac_mode
         self._fill_temperature_attributes(self._get_temperature_conf())
         if hvac_mode == HVACMode.OFF:
-            self.turn_off()
+            self._call_remote_command("off")
             return
         if hvac_mode != HVACMode.OFF and old_mode == HVACMode.OFF:
-            self.turn_on()
+            self._call_remote_command("on")
         command = self._get_command(ATTR_HVAC_MODE)
         self._call_remote_command(command)
 

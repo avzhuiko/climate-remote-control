@@ -23,6 +23,7 @@ from homeassistant.helpers.selector import SelectSelectorMode
 import voluptuous as vol
 
 from .const import (
+    CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID,
     CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID,
     CONF_FAN_MODES,
     CONF_GROUPING_ATTRIBUTES,
@@ -302,9 +303,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 for mode in selected_modes:
                     self.result[CONF_HVAC_MODES][mode] = {}
                     if mode in (HVACMode.OFF, HVACMode.FAN_ONLY, HVACMode.DRY):
-                        self.result[CONF_HVAC_MODES][mode][
-                            CONF_TEMPERATURE
-                        ] = TEMPERATURE_SCHEMA({CONF_MODE: TemperatureMode.NONE})
+                        self.result[CONF_HVAC_MODES][mode][CONF_TEMPERATURE] = (
+                            TEMPERATURE_SCHEMA({CONF_MODE: TemperatureMode.NONE})
+                        )
         if user_input is None or bool(errors):
             default_hvac_modes = self.config_entry.options.get(CONF_HVAC_MODES, {})
             return self.async_show_form(
@@ -405,12 +406,30 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                                 )
                             ),
                         ),
+                        vol.Optional(
+                            CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID,
+                            default=self.config_entry.options.get(
+                                CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID
+                            ),
+                        ): vol.Any(
+                            None,
+                            selector.EntitySelector(
+                                selector.EntitySelectorConfig(
+                                    multiple=False,
+                                    domain=Platform.SENSOR,
+                                    device_class=SensorDeviceClass.HUMIDITY,
+                                )
+                            ),
+                        ),
                     }
                 ),
             )
 
         self.result[CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID] = user_input[
             CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID
+        ]
+        self.result[CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID] = user_input[
+            CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID
         ]
         return self.async_create_entry(
             title=self.config_entry.title,

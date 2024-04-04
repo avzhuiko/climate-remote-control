@@ -80,7 +80,8 @@
         "title": "Sensors",
         "description": "Here you can choose sensors which will be used for current climate state",
         "data": {
-          "current_temperature_sensor_entity_id": "Temperature sensor"
+          "current_temperature_sensor_entity_id": "Temperature sensor",
+          "current_humidity_sensor_entity_id": "Humidity sensor"
         }
       }
     },

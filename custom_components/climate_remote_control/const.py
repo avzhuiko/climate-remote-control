@@ -42,6 +42,7 @@ CONF_MODES = "modes"
 CONF_MIN = "min"
 CONF_MAX = "max"
 CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID = "current_temperature_sensor_entity_id"
+CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID = "current_humidity_sensor_entity_id"
 CONF_GROUPING_ATTRIBUTES = "grouping_attributes"
 GROUPING_ATTRIBUTES = [
     ATTR_HVAC_MODE,

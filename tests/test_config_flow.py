@@ -18,6 +18,7 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.climate_remote_control.const import (
+    CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID,
     CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID,
     CONF_FAN_MODES,
     CONF_GROUPING_ATTRIBUTES,
@@ -168,7 +169,8 @@ async def test_options_flow(hass: HomeAssistant):
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
         user_input={
-            "current_temperature_sensor_entity_id": "sensor.sensor_temperature"
+            "current_temperature_sensor_entity_id": "sensor.sensor_temperature",
+            "current_humidity_sensor_entity_id": "sensor.sensor_humidity",
         },
     )
 
@@ -213,6 +215,7 @@ async def test_options_flow(hass: HomeAssistant):
     assert (
         data[CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID] == "sensor.sensor_temperature"
     )
+    assert data[CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID] == "sensor.sensor_humidity"
 
 
 @pytest.mark.skip(reason="no way of currently testing this")

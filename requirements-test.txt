@@ -1,2 +1,2 @@
-pytest-mock==3.12.0
-pytest-homeassistant-custom-component==0.13.88
+pytest-mock==3.14.0
+pytest-homeassistant-custom-component==0.13.111
