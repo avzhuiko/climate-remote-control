@@ -110,6 +110,12 @@ See [Broadlink learning commands](https://www.home-assistant.io/integrations/bro
 If command hasn't been learned, the integration will log it with WARN level.  
 Ex: Command "mode:heat_fan:low_temp:25.0" for device "LG_ES-H126LLA0" not found. You should learn it.
 
+# Other
+
+## Tested with
+
+- LG ES-H126LLA0
+
 ---
 
 [paypal]: https://www.paypal.com/donate/?hosted_button_id=BH5J26BSR2734
