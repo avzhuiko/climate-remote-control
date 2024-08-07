@@ -16,7 +16,6 @@ from homeassistant.const import (
     Platform,
 )
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
 from homeassistant.helpers.selector import SelectSelectorMode
@@ -66,9 +65,7 @@ class ACRemoteConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
     MINOR_VERSION = 1
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None):
         if user_input is None:
             return self.async_show_form(
                 step_id="user",
@@ -102,9 +99,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Initialize options flow."""
         self.config_entry = config_entry
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None):
         """Manage the options."""
 
         if user_input is None:
@@ -123,9 +118,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self.result[CONF_DEVICE] = user_input[CONF_DEVICE]
         return await self.async_step_target()
 
-    async def async_step_target(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_target(self, user_input: dict[str, Any] | None = None):
         errors = {}
         if user_input is not None:
             entity_ids: [str] = user_input[ATTR_ENTITY_ID]
@@ -181,9 +174,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             )
         return await self.async_step_temperature()
 
-    async def async_step_temperature(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_temperature(self, user_input: dict[str, Any] | None = None):
         if user_input is None:
             default_temperature = self.config_entry.options.get(
                 CONF_TEMPERATURE,
@@ -245,9 +236,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         }
         return await self.async_step_swing()
 
-    async def async_step_swing(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_swing(self, user_input: dict[str, Any] | None = None):
         if user_input is None:
             default_swing = self.config_entry.options.get(
                 CONF_SWING,
@@ -290,9 +279,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         }
         return await self.async_step_hvac_modes()
 
-    async def async_step_hvac_modes(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_hvac_modes(self, user_input: dict[str, Any] | None = None):
         errors = {}
         if user_input is not None:
             selected_modes = user_input[CONF_MODES]
@@ -329,9 +316,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             )
         return await self.async_step_fan_modes()
 
-    async def async_step_fan_modes(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_fan_modes(self, user_input: dict[str, Any] | None = None):
         if user_input is None:
             return self.async_show_form(
                 step_id="fan_modes",
@@ -357,7 +342,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_grouping_attributes(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ):
         if user_input is None:
             return self.async_show_form(
                 step_id="grouping_attributes",
@@ -383,9 +368,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self.result[CONF_GROUPING_ATTRIBUTES] = user_input[CONF_GROUPING_ATTRIBUTES]
         return await self.async_step_sensors()
 
-    async def async_step_sensors(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_sensors(self, user_input: dict[str, Any] | None = None):
         if user_input is None:
             return self.async_show_form(
                 step_id="sensors",

@@ -34,7 +34,7 @@ jobs:
       - name: Lint with Ruff
         run: |
           pip install ruff
-          ruff --output-format=github .
+          ruff check --output-format=github .
         continue-on-error: true
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3
