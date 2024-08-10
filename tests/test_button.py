@@ -1,3 +1,5 @@
+import logging
+
 from homeassistant.components.climate import SWING_VERTICAL
 from homeassistant.components.remote import SERVICE_SEND_COMMAND
 from homeassistant.const import ATTR_ENTITY_ID, CONF_DEVICE, CONF_TARGET, Platform
@@ -129,3 +131,39 @@ async def test_press(
     assert service_call_data["command"] == "swing:" + SWING_VERTICAL
     assert service_call_data["device"] == "test"
     assert service_call_data[ATTR_ENTITY_ID] == [remote_entity_id]
+
+
+async def test_press_with_undefined_command(
+    hass: HomeAssistant, remote_entity_id: str, config_entry_unique_id: str, caplog
+):
+    """Test press button"""
+    button = AcRemoteSwingToggle(
+        unique_id=config_entry_unique_id,
+        name="test_name",
+        target={ATTR_ENTITY_ID: [remote_entity_id]},
+        device="test",
+        mode=SWING_VERTICAL,
+    )
+    button.hass = hass
+    send_command_service_calls = async_mock_service(
+        hass,
+        Platform.REMOTE,
+        SERVICE_SEND_COMMAND,
+        raise_exception=ValueError("Command not found"),
+    )
+
+    caplog.set_level(logging.WARNING)
+
+    await button.async_press()
+    assert len(send_command_service_calls) == 1
+    service_call = send_command_service_calls[0]
+    service_call_data = service_call.data
+    assert service_call_data["command"] == "swing:" + SWING_VERTICAL
+    assert service_call_data["device"] == "test"
+    assert service_call_data[ATTR_ENTITY_ID] == [remote_entity_id]
+    assert (
+        'Command "swing:'
+        + SWING_VERTICAL
+        + '" for device "test" not found. You should learn it.'
+        in caplog.text
+    )

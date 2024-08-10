@@ -1,7 +1,7 @@
 {
   "name": "Climate remote control",
   "filename": "climate_remote_control.zip",
-  "homeassistant": "2024.7",
+  "homeassistant": "2024.8",
   "render_readme": true,
   "zip_release": true
 }
