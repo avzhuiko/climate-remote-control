@@ -2,7 +2,7 @@ from unittest.mock import patch
 import uuid
 
 from homeassistant import config_entries, data_entry_flow
-from homeassistant.components.climate import HVACMode
+from homeassistant.components.climate import FAN_HIGH, FAN_LOW, FAN_MEDIUM, HVACMode
 from homeassistant.const import (
     ATTR_AREA_ID,
     ATTR_DEVICE_ID,
@@ -13,7 +13,7 @@ from homeassistant.const import (
     CONF_UNIQUE_ID,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.data_entry_flow import FlowResultType, _FlowResultT
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -74,7 +74,7 @@ async def test_config_flow(hass: HomeAssistant):
     assert data[CONF_NAME] == "my air conditioner"
 
 
-async def test_options_flow(hass: HomeAssistant):
+async def test_options_flow_with_new_configuration(hass: HomeAssistant):
     config_entry_id = str(uuid.uuid4())
     config_entry_unique_id = str(uuid.uuid4())
     config_entry = MockConfigEntry(
@@ -89,7 +89,7 @@ async def test_options_flow(hass: HomeAssistant):
     result = await hass.config_entries.options.async_init(config_entry_id)
 
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "init"
+    assert result["step_id"] == "device"
 
     result = await hass.config_entries.options.async_configure(
         result["flow_id"], user_input={"device": "LG_dummy"}
@@ -141,11 +141,7 @@ async def test_options_flow(hass: HomeAssistant):
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
         user_input={
-            "modes": [
-                "low",
-                "medium",
-                "high",
-            ]
+            CONF_MODES: [FAN_LOW, FAN_MEDIUM, FAN_HIGH, "My favourite fan speed"]
         },
     )
 
@@ -208,7 +204,7 @@ async def test_options_flow(hass: HomeAssistant):
     assert hvac_modes[HVACMode.HEAT] == {}
     assert hvac_modes[HVACMode.COOL] == {}
 
-    assert data[CONF_FAN_MODES] == ["low", "medium", "high"]
+    assert data[CONF_FAN_MODES] == ["low", "medium", "high", "My favourite fan speed"]
 
     assert data[CONF_GROUPING_ATTRIBUTES] == ["hvac_mode", "temperature", "fan_mode"]
 
@@ -218,17 +214,11 @@ async def test_options_flow(hass: HomeAssistant):
     assert data[CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID] == "sensor.sensor_humidity"
 
 
-@pytest.mark.skip(reason="no way of currently testing this")
 async def test_options_flow_empty_target(
-    hass: HomeAssistant, config_entry_id: str, config_entry: MockConfigEntry
+    hass: HomeAssistant, config_entry: MockConfigEntry
 ):
-    """Test a successful config flow."""
-    result = await hass.config_entries.options.async_init(
-        config_entry_id, context={"source": "target"}
-    )
-
-    assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "init"
+    """Test target validation."""
+    result = await _go_to_specific_step(hass, config_entry.entry_id, "target")
 
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
@@ -240,21 +230,165 @@ async def test_options_flow_empty_target(
     assert errors["base"] == "target_is_empty"
 
 
-@pytest.mark.skip(reason="no way of currently testing this")
-async def test_options_flow_empty_hvac_modes(hass: HomeAssistant, config_entry_id: str):
-    """Test a successful config flow."""
-    result = await hass.config_entries.options.async_init(
-        config_entry_id, context={"source": "hvac_modes"}
+async def test_options_flow_empty_hvac_modes(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+):
+    """Test HVAC modes validation"""
+    result = await _go_to_specific_step(hass, config_entry.entry_id, "hvac_modes")
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={CONF_MODES: []},
     )
 
-    assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "hvac_modes"
+    assert len(result["errors"]) == 1
+    errors = result["errors"]
+    assert errors[CONF_MODES] == "hvac_modes_is_empty"
+
+
+async def test_previously_configured_device(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+):
+    """Test showing menu after configuration swing"""
+    result = await _go_to_specific_step(hass, config_entry.entry_id, "device")
 
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
         user_input={},
     )
 
-    assert len(result["errors"]) == 1
-    errors = result["errors"]
-    assert errors["base"] == "hvac_modes_is_empty"
+    assert result["type"] == FlowResultType.MENU
+    assert result["step_id"] == "init"
+
+
+async def test_previously_configured_target(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+):
+    """Test showing menu after configuration swing"""
+    result = await _go_to_specific_step(hass, config_entry.entry_id, "target")
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={},
+    )
+
+    assert result["type"] == FlowResultType.MENU
+    assert result["step_id"] == "init"
+
+
+async def test_previously_configured_temperature(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+):
+    """Test showing menu after configuration swing"""
+    result = await _go_to_specific_step(hass, config_entry.entry_id, "temperature")
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_MODE: "target",
+            CONF_TEMPERATURE_UNIT: "c",
+            CONF_TEMPERATURE_STEP: 1,
+            CONF_MIN: 18.0,
+            CONF_MAX: 30.0,
+        },
+    )
+
+    assert result["type"] == FlowResultType.MENU
+    assert result["step_id"] == "init"
+
+
+async def test_previously_configured_swing(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+):
+    """Test showing menu after configuration swing"""
+    result = await _go_to_specific_step(hass, config_entry.entry_id, "swing")
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={},
+    )
+
+    assert result["type"] == FlowResultType.MENU
+    assert result["step_id"] == "init"
+
+
+async def test_previously_configured_hvac_modes(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+):
+    """Test showing menu after configuration swing"""
+    result = await _go_to_specific_step(hass, config_entry.entry_id, "hvac_modes")
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={},
+    )
+
+    assert result["type"] == FlowResultType.MENU
+    assert result["step_id"] == "init"
+
+
+async def test_previously_configured_fan_modes(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+):
+    """Test showing menu after configuration swing"""
+    result = await _go_to_specific_step(hass, config_entry.entry_id, "fan_modes")
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={},
+    )
+
+    assert result["type"] == FlowResultType.MENU
+    assert result["step_id"] == "init"
+
+
+async def test_previously_configured_grouping_attributes(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+):
+    """Test showing menu after configuration sensors"""
+    result = await _go_to_specific_step(
+        hass, config_entry.entry_id, "grouping_attributes"
+    )
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={},
+    )
+
+    assert result["type"] == FlowResultType.MENU
+    assert result["step_id"] == "init"
+
+
+async def test_previously_configured_sensors(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+):
+    """Test showing menu after configuration sensors"""
+    result = await _go_to_specific_step(hass, config_entry.entry_id, "sensors")
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={},
+    )
+
+    assert result["type"] == FlowResultType.MENU
+    assert result["step_id"] == "init"
+
+
+async def _go_to_specific_step(
+    hass: HomeAssistant, config_entry_id: str, step_id: str
+) -> _FlowResultT:
+    result = await hass.config_entries.options.async_init(
+        config_entry_id, context={"source": "user"}
+    )
+
+    assert result["type"] == FlowResultType.MENU
+    assert result["step_id"] == "init"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={"next_step_id": step_id},
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == step_id
+    return result

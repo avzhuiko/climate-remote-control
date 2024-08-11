@@ -14,6 +14,20 @@
   "options": {
     "step": {
       "init": {
+        "title": "Menu",
+        "menu_options": {
+          "device": "Device",
+          "target": "Target",
+          "temperature": "Temperature",
+          "swing": "Swing",
+          "hvac_modes": "HVAC modes",
+          "fan_modes": "Fan modes",
+          "grouping_attributes": "Grouping attributes",
+          "sensors": "Sensors",
+          "finish": "Save"
+        }
+      },
+      "device": {
         "title": "Device",
         "data": {
           "device": "Device code"
@@ -101,8 +115,8 @@
     "swing_mode": {
       "options": {
         "none": "None",
-        "toggle": "Toggle",
-        "state": "State"
+        "toggle": "Stateless",
+        "state": "Stateful"
       }
     },
     "swing_state": {
@@ -153,6 +167,24 @@
         "temperature": "Temperature",
         "temperature_range": "Temperature range",
         "humidity": "Humidity"
+      }
+    }
+  },
+  "entity": {
+    "climate": {
+      "climate_remote_control": {
+        "state_attributes": {
+          "fan_mode": {
+            "state": {
+              "1": "Speed 1",
+              "2": "Speed 2",
+              "3": "Speed 3",
+              "4": "Speed 4",
+              "5": "Speed 5",
+              "6": "Speed 6"
+            }
+          }
+        }
       }
     }
   }
