@@ -99,12 +99,36 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Initialize options flow."""
         self.config_entry = config_entry
 
+    def _is_previously_configured(self) -> bool:
+        if self.config_entry.options is None or self.config_entry.options == {}:
+            return False
+        return True
+
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         """Manage the options."""
+        if self._is_previously_configured():
+            return self.async_show_menu(
+                step_id="init",
+                menu_options=[
+                    "device",
+                    "target",
+                    "temperature",
+                    "swing",
+                    "hvac_modes",
+                    "fan_modes",
+                    "grouping_attributes",
+                    "sensors",
+                    "finish",
+                ],
+            )
+        else:
+            return await self.async_step_device()
 
+    async def async_step_device(self, user_input: dict[str, Any] | None = None):
+        """Manage the options."""
         if user_input is None:
             return self.async_show_form(
-                step_id="init",
+                step_id="device",
                 data_schema=vol.Schema(
                     {
                         vol.Required(
@@ -116,7 +140,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             )
 
         self.result[CONF_DEVICE] = user_input[CONF_DEVICE]
-        return await self.async_step_target()
+        if self._is_previously_configured():
+            return await self.async_step_init()
+        else:
+            return await self.async_step_target()
 
     async def async_step_target(self, user_input: dict[str, Any] | None = None):
         errors = {}
@@ -172,7 +199,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 ),
                 errors=errors,
             )
-        return await self.async_step_temperature()
+        if self._is_previously_configured():
+            return await self.async_step_init()
+        else:
+            return await self.async_step_temperature()
 
     async def async_step_temperature(self, user_input: dict[str, Any] | None = None):
         if user_input is None:
@@ -234,7 +264,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             CONF_MIN: user_input[CONF_MIN],
             CONF_MAX: user_input[CONF_MAX],
         }
-        return await self.async_step_swing()
+        if self._is_previously_configured():
+            return await self.async_step_init()
+        else:
+            return await self.async_step_swing()
 
     async def async_step_swing(self, user_input: dict[str, Any] | None = None):
         if user_input is None:
@@ -277,14 +310,17 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             CONF_MODE: user_input[CONF_MODE],
             CONF_MODES: user_input[CONF_MODES],
         }
-        return await self.async_step_hvac_modes()
+        if self._is_previously_configured():
+            return await self.async_step_init()
+        else:
+            return await self.async_step_hvac_modes()
 
     async def async_step_hvac_modes(self, user_input: dict[str, Any] | None = None):
         errors = {}
         if user_input is not None:
             selected_modes = user_input[CONF_MODES]
             if len(selected_modes) == 0:
-                errors["base"] = "hvac_modes_is_empty"
+                errors[CONF_MODES] = "hvac_modes_is_empty"
             else:
                 self.result[CONF_HVAC_MODES] = {}
                 for mode in selected_modes:
@@ -314,7 +350,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 ),
                 errors=errors,
             )
-        return await self.async_step_fan_modes()
+        if self._is_previously_configured():
+            return await self.async_step_init()
+        else:
+            return await self.async_step_fan_modes()
 
     async def async_step_fan_modes(self, user_input: dict[str, Any] | None = None):
         if user_input is None:
@@ -328,7 +367,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         ): selector.SelectSelector(
                             selector.SelectSelectorConfig(
                                 multiple=True,
-                                mode=SelectSelectorMode.LIST,
+                                custom_value=True,
+                                mode=SelectSelectorMode.DROPDOWN,
                                 translation_key="fan_mode",
                                 options=FAN_MODES,
                             )
@@ -338,7 +378,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             )
 
         self.result[CONF_FAN_MODES] = user_input[CONF_MODES]
-        return await self.async_step_grouping_attributes()
+        if self._is_previously_configured():
+            return await self.async_step_init()
+        else:
+            return await self.async_step_grouping_attributes()
 
     async def async_step_grouping_attributes(
         self, user_input: dict[str, Any] | None = None
@@ -366,7 +409,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             )
 
         self.result[CONF_GROUPING_ATTRIBUTES] = user_input[CONF_GROUPING_ATTRIBUTES]
-        return await self.async_step_sensors()
+        if self._is_previously_configured():
+            return await self.async_step_init()
+        else:
+            return await self.async_step_sensors()
 
     async def async_step_sensors(self, user_input: dict[str, Any] | None = None):
         if user_input is None:
@@ -414,7 +460,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self.result[CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID] = user_input[
             CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID
         ]
+
+        if self._is_previously_configured():
+            return await self.async_step_init()
+        else:
+            return await self.async_step_finish()
+
+    async def async_step_finish(self, user_input: dict[str, Any] | None = None):
+        options = self.config_entry.options | {}
         return self.async_create_entry(
             title=self.config_entry.title,
-            data=self.result,
+            data=options | self.result,
         )

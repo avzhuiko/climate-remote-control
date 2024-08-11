@@ -68,6 +68,7 @@ async def async_setup_entry(
 class AcRemote(ClimateEntity, RestoreEntity):
     """Representation of climate entity"""
 
+    _attr_translation_key = DOMAIN
     _attr_has_entity_name = True
     _attr_name = None
 

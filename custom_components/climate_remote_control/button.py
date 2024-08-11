@@ -53,6 +53,7 @@ async def async_setup_entry(
 class AcRemoteSwingToggle(ButtonEntity):
     """Representation of swing toggle button for one mode"""
 
+    _attr_translation_key = DOMAIN
     _attr_has_entity_name = True
 
     target: dict[str, Any] = {}
