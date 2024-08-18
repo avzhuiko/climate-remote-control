@@ -2,7 +2,14 @@ from unittest.mock import patch
 import uuid
 
 from homeassistant import config_entries, data_entry_flow
-from homeassistant.components.climate import FAN_HIGH, FAN_LOW, FAN_MEDIUM, HVACMode
+from homeassistant.components.climate import (
+    FAN_HIGH,
+    FAN_LOW,
+    FAN_MEDIUM,
+    PRESET_BOOST,
+    PRESET_NONE,
+    HVACMode,
+)
 from homeassistant.const import (
     ATTR_AREA_ID,
     ATTR_DEVICE_ID,
@@ -27,6 +34,7 @@ from custom_components.climate_remote_control.const import (
     CONF_MIN,
     CONF_MODE,
     CONF_MODES,
+    CONF_PRESET_MODES,
     CONF_SWING,
     CONF_TEMPERATURE,
     CONF_TEMPERATURE_STEP,
@@ -170,6 +178,15 @@ async def test_options_flow_with_new_configuration(hass: HomeAssistant):
         },
     )
 
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "preset_modes"
+
+    # Configuring grouping attributes.
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={"modes": [PRESET_NONE, PRESET_BOOST]},
+    )
+
     assert result["type"] == data_entry_flow.RESULT_TYPE_CREATE_ENTRY
     assert result["title"] == "name_test"
     assert result["result"]
@@ -211,7 +228,9 @@ async def test_options_flow_with_new_configuration(hass: HomeAssistant):
     assert (
         data[CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID] == "sensor.sensor_temperature"
     )
+
     assert data[CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID] == "sensor.sensor_humidity"
+    assert data[CONF_PRESET_MODES] == [PRESET_NONE, PRESET_BOOST]
 
 
 async def test_options_flow_empty_target(
@@ -364,6 +383,21 @@ async def test_previously_configured_sensors(
 ):
     """Test showing menu after configuration sensors"""
     result = await _go_to_specific_step(hass, config_entry.entry_id, "sensors")
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={},
+    )
+
+    assert result["type"] == FlowResultType.MENU
+    assert result["step_id"] == "init"
+
+
+async def test_previously_configured_preset_modes(
+    hass: HomeAssistant, config_entry: MockConfigEntry
+):
+    """Test showing menu after configuration sensors"""
+    result = await _go_to_specific_step(hass, config_entry.entry_id, "preset_modes")
 
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],

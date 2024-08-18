@@ -18,7 +18,7 @@ When you define integration you will get default home assistant climate card.
 **This component will set up the following platforms.**
 
 | Platform  | Description                                       |
-| --------- | ------------------------------------------------- |
+|-----------|---------------------------------------------------|
 | `climate` | For controlling AC unit via default climate card. |
 | `button`  | For swing toggle mode.                            |
 
@@ -88,8 +88,9 @@ When you change climate parameter the integration tries to find command for send
 command". You can find formats for parameters below:
 
 | Parameter         | Format                                                                                       | Example             |
-| ----------------- | -------------------------------------------------------------------------------------------- | ------------------- |
+|-------------------|----------------------------------------------------------------------------------------------|---------------------|
 | HVAC mode         | mode:\<selected HVAC mode\>                                                                  | mode:heat           |
+| Preset mode       | preset:\<selected preset mode\>                                                              | preset:boost        |
 | Fan               | fan:\<selected fan mode\>                                                                    | fan:medium          |
 | Swing             | swing:\<selected swing mode\>                                                                | swing:vertical      |
 | Temperature       | temp:\<target temperature value with precision 1\>                                           | temp:24.0           |
@@ -120,6 +121,9 @@ Ex: Command "mode:heat_fan:low_temp:25.0" for device "LG_ES-H126LLA0" not found.
 ---
 
 [paypal]: https://www.paypal.com/donate/?hosted_button_id=BH5J26BSR2734
+
 [paypalbadge]: https://img.shields.io/badge/Donate-PayPal-blue?logo=paypal
+
 [buymeacoffee]: https://www.buymeacoffee.com/avzhuikow
+
 [buymeacoffeebadge]: https://img.shields.io/badge/Donate-Buy%20me%20a%20coffee-yellow?logo=buy-me-a-coffee

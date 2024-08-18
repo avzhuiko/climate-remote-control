@@ -4,6 +4,8 @@ from homeassistant.components.climate import SWING_VERTICAL
 from homeassistant.components.remote import SERVICE_SEND_COMMAND
 from homeassistant.const import ATTR_ENTITY_ID, CONF_DEVICE, CONF_TARGET, Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry
+from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
     async_mock_service,
@@ -21,6 +23,15 @@ from custom_components.climate_remote_control.const import (
     DOMAIN,
     SwingMode,
 )
+
+
+async def test_setup(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+):
+    assert await async_setup_component(hass, DOMAIN, {}) is True
+    await hass.async_block_till_done()
+    assert entity_registry.async_get(hass).entities["button.name_test_swing_vertical"]
 
 
 async def test_none_mode(
