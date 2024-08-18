@@ -18,6 +18,14 @@ from homeassistant.components.climate import (
     FAN_OFF,
     FAN_ON,
     FAN_TOP,
+    PRESET_ACTIVITY,
+    PRESET_AWAY,
+    PRESET_BOOST,
+    PRESET_COMFORT,
+    PRESET_ECO,
+    PRESET_HOME,
+    PRESET_NONE,
+    PRESET_SLEEP,
     SWING_BOTH,
     SWING_HORIZONTAL,
     SWING_OFF,
@@ -30,12 +38,14 @@ DOMAIN = "climate_remote_control"
 DATA_CONFIG = "config"
 
 ATTR_TEMPERATURE_RANGE = "temperature_range"
+ATTR_PRESET_MODE = "preset"
 CONF_TEMPERATURE = "temperature"
 CONF_TEMPERATURE_STEP = "temperature_step"
 CONF_TEMPERATURE_OFFSET = "temperature_offset"
 CONF_HUMIDITY_OFFSET = "humidity_offset"
 CONF_HVAC_MODES = "hvac_modes"
 CONF_FAN_MODES = "fan_modes"
+CONF_PRESET_MODES = "preset_modes"
 CONF_SWING = "swing"
 CONF_MODE = "mode"
 CONF_MODES = "modes"
@@ -75,6 +85,16 @@ FAN_MODES = [
     FAN_SPEED_4,
     FAN_SPEED_5,
     FAN_SPEED_6,
+]
+PRESET_MODES = [
+    PRESET_NONE,
+    PRESET_ECO,
+    PRESET_AWAY,
+    PRESET_BOOST,
+    PRESET_COMFORT,
+    PRESET_HOME,
+    PRESET_SLEEP,
+    PRESET_ACTIVITY,
 ]
 
 SWING_STATES = [

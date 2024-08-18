@@ -8,10 +8,12 @@ from homeassistant.components.climate import (
     ATTR_FAN_MODE,
     ATTR_HUMIDITY,
     ATTR_HVAC_MODE,
+    ATTR_PRESET_MODE,
     ATTR_SWING_MODE,
     ATTR_TARGET_TEMP_HIGH,
     ATTR_TARGET_TEMP_LOW,
     ATTR_TEMPERATURE,
+    PRESET_NONE,
     ClimateEntity,
     ClimateEntityFeature,
     HVACMode,
@@ -26,10 +28,16 @@ from homeassistant.const import (
     STATE_UNKNOWN,
     UnitOfTemperature,
 )
-from homeassistant.core import HomeAssistant, State, callback
+from homeassistant.core import (
+    Event,
+    EventStateChangedData,
+    HomeAssistant,
+    State,
+    callback,
+)
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.event import async_track_state_change
+from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import (
@@ -41,6 +49,7 @@ from .const import (
     CONF_HVAC_MODES,
     CONF_MODE,
     CONF_MODES,
+    CONF_PRESET_MODES,
     CONF_SWING,
     CONF_TEMPERATURE,
     CONF_TEMPERATURE_STEP,
@@ -119,6 +128,20 @@ class AcRemote(ClimateEntity, RestoreEntity):
             self._attr_supported_features |= ClimateEntityFeature.FAN_MODE
         else:
             self._attr_fan_mode = None
+            self._attr_fan_modes = None
+
+        # Configure preset modes
+        if CONF_PRESET_MODES in options:
+            preset_modes = options[CONF_PRESET_MODES]
+            self._attr_preset_modes = preset_modes
+            if len(preset_modes) > 0:
+                self._attr_preset_mode = preset_modes[0]
+                self._attr_supported_features |= ClimateEntityFeature.PRESET_MODE
+            else:
+                self._attr_preset_mode = None
+        else:
+            self._attr_preset_mode = None
+            self._attr_preset_modes = None
 
         # Configure swing modes
         swing = options[CONF_SWING]
@@ -177,6 +200,9 @@ class AcRemote(ClimateEntity, RestoreEntity):
         if key == ATTR_FAN_MODE:
             attr_key = "fan"
             attr_value = str(self._attr_fan_mode)
+        if key == ATTR_PRESET_MODE:
+            attr_key = "preset"
+            attr_value = str(self._attr_preset_mode)
         if key == ATTR_SWING_MODE:
             attr_key = "swing"
             attr_value = str(self._attr_swing_mode)
@@ -271,15 +297,17 @@ class AcRemote(ClimateEntity, RestoreEntity):
             )
 
     async def _async_update_current_temperature_changed(
-        self, entity_id, old_state, new_state
-    ):
+        self, event: Event[EventStateChangedData]
+    ) -> None:
         """Handle temperature sensor changes."""
+        new_state = event.data["new_state"]
         self._async_update_current_temperature(new_state)
 
     async def _async_update_current_humidity_changed(
-        self, entity_id, old_state, new_state
-    ):
+        self, event: Event[EventStateChangedData]
+    ) -> None:
         """Handle humidity sensor changes."""
+        new_state = event.data["new_state"]
         self._async_update_current_humidity(new_state)
 
     @callback
@@ -305,12 +333,14 @@ class AcRemote(ClimateEntity, RestoreEntity):
             _LOGGER.error("Unable to update from humidity sensor: %s", ex)
 
     @callback
-    def _async_restore_last_state(self, last_state) -> None:
+    def _async_restore_last_state(self, last_state: State) -> None:
         """Restore previous state."""
         attributes = last_state.attributes
         self._attr_hvac_mode = last_state.state
         if ATTR_FAN_MODE in attributes:
             self._attr_fan_mode = attributes[ATTR_FAN_MODE]
+        if ATTR_PRESET_MODE in attributes:
+            self._attr_preset_mode = attributes[ATTR_PRESET_MODE]
         if ATTR_SWING_MODE in attributes:
             self._attr_swing_mode = attributes[ATTR_SWING_MODE]
         if ATTR_TEMPERATURE in attributes:
@@ -332,7 +362,7 @@ class AcRemote(ClimateEntity, RestoreEntity):
 
         """Subscribe to current temperature sensor updates"""
         if self._current_temperature_sensor_entity_id:
-            async_track_state_change(
+            async_track_state_change_event(
                 self.hass,
                 self._current_temperature_sensor_entity_id,
                 self._async_update_current_temperature_changed,
@@ -348,7 +378,7 @@ class AcRemote(ClimateEntity, RestoreEntity):
             hasattr(self, "_current_humidity_sensor_entity_id")
             and self._current_humidity_sensor_entity_id
         ):
-            async_track_state_change(
+            async_track_state_change_event(
                 self.hass,
                 self._current_humidity_sensor_entity_id,
                 self._async_update_current_humidity_changed,
@@ -364,6 +394,7 @@ class AcRemote(ClimateEntity, RestoreEntity):
         if temperature is not None:
             self._attr_target_temperature = temperature
             command = self._get_command(ATTR_TEMPERATURE)
+            self._reset_preset_mode()
             self._call_remote_command(command)
             return
         temperature_low: float | None = kwargs.get(ATTR_TARGET_TEMP_LOW)
@@ -372,6 +403,7 @@ class AcRemote(ClimateEntity, RestoreEntity):
             self._attr_target_temperature_low = temperature_low
             self._attr_target_temperature_high = temperature_high
             command = self._get_command(ATTR_TEMPERATURE_RANGE)
+            self._reset_preset_mode()
             self._call_remote_command(command)
         else:
             raise ValueError("temperature_low and temperature_high must be provided")
@@ -384,6 +416,7 @@ class AcRemote(ClimateEntity, RestoreEntity):
     def set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         old_mode = self._attr_hvac_mode
         self._attr_hvac_mode = hvac_mode
+        self._reset_preset_mode()
         self._fill_temperature_attributes(self._get_temperature_conf())
         if hvac_mode == HVACMode.OFF:
             self._call_remote_command("off")
@@ -402,3 +435,17 @@ class AcRemote(ClimateEntity, RestoreEntity):
         self._attr_fan_mode = fan_mode
         command = self._get_command(ATTR_FAN_MODE)
         self._call_remote_command(command)
+
+    def set_preset_mode(self, preset_mode: str) -> None:
+        self._attr_preset_mode = preset_mode
+        command = self._get_command(ATTR_PRESET_MODE)
+        self._call_remote_command(command)
+
+    def _reset_preset_mode(self) -> None:
+        if (
+            self._attr_preset_modes is None
+            or self._attr_preset_modes == []
+            or PRESET_NONE not in self._attr_preset_modes
+        ):
+            return
+        self._attr_preset_mode = PRESET_NONE

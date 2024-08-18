@@ -7,6 +7,8 @@ from homeassistant.components.climate import (
     FAN_HIGH,
     FAN_LOW,
     FAN_MEDIUM,
+    PRESET_BOOST,
+    PRESET_NONE,
     SWING_VERTICAL,
     HVACMode,
 )
@@ -20,7 +22,6 @@ from homeassistant.const import (
     CONF_TARGET,
     CONF_TEMPERATURE_UNIT,
     CONF_UNIQUE_ID,
-    UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant
 import pytest
@@ -41,6 +42,7 @@ from custom_components.climate_remote_control.const import (
     CONF_MIN,
     CONF_MODE,
     CONF_MODES,
+    CONF_PRESET_MODES,
     CONF_SWING,
     CONF_TEMPERATURE,
     CONF_TEMPERATURE_STEP,
@@ -95,7 +97,7 @@ def config_entry(
                 ATTR_AREA_ID: [],
             },
             CONF_TEMPERATURE_STEP: 1,
-            CONF_TEMPERATURE_UNIT: UnitOfTemperature.CELSIUS,
+            CONF_TEMPERATURE_UNIT: "c",
             CONF_TEMPERATURE: {
                 CONF_MODE: TemperatureMode.TARGET,
                 CONF_MIN: 18,
@@ -128,6 +130,7 @@ def config_entry(
             ],
             CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID: "sensor.sensor_temperature",
             CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID: "sensor.sensor_humidity",
+            CONF_PRESET_MODES: [PRESET_NONE, PRESET_BOOST],
         },
     )
     config_entry.add_to_hass(hass)

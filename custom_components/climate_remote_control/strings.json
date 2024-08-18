@@ -24,6 +24,7 @@
           "fan_modes": "Fan modes",
           "grouping_attributes": "Grouping attributes",
           "sensors": "Sensors",
+          "preset_modes": "Preset modes",
           "finish": "Save"
         }
       },
@@ -75,7 +76,7 @@
       },
       "fan_modes": {
         "title": "Fan modes",
-        "description": "Choose applicable fan modes for your climate",
+        "description": "Choose applicable fan modes for your climate. You can type your own",
         "data": {
           "modes": "Fan modes"
         }
@@ -96,6 +97,13 @@
         "data": {
           "current_temperature_sensor_entity_id": "Temperature sensor",
           "current_humidity_sensor_entity_id": "Humidity sensor"
+        }
+      },
+      "preset_modes": {
+        "title": "Preset modes",
+        "description": "Choose applicable preset modes for your climate entity. You can type your own",
+        "data": {
+          "modes": "Preset modes"
         }
       }
     },
@@ -167,6 +175,18 @@
         "temperature": "Temperature",
         "temperature_range": "Temperature range",
         "humidity": "Humidity"
+      }
+    },
+    "preset_mode": {
+      "options": {
+        "none": "None",
+        "eco": "Eco",
+        "away": "Away",
+        "boost": "Boost",
+        "comfort": "Comfort",
+        "home": "Home",
+        "sleep": "Sleep",
+        "activity": "Activity"
       }
     }
   },

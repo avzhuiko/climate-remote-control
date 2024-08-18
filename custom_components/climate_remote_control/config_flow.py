@@ -31,12 +31,14 @@ from .const import (
     CONF_MIN,
     CONF_MODE,
     CONF_MODES,
+    CONF_PRESET_MODES,
     CONF_SWING,
     CONF_TEMPERATURE,
     CONF_TEMPERATURE_STEP,
     DOMAIN,
     FAN_MODES,
     GROUPING_ATTRIBUTES,
+    PRESET_MODES,
     SWING_MODES,
     SWING_STATES,
     TEMPERATURE_MODES,
@@ -63,7 +65,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class ACRemoteConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
-    MINOR_VERSION = 1
+    MINOR_VERSION = 2
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
         if user_input is None:
@@ -118,6 +120,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     "fan_modes",
                     "grouping_attributes",
                     "sensors",
+                    "preset_modes",
                     "finish",
                 ],
             )
@@ -461,6 +464,36 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID
         ]
 
+        if self._is_previously_configured():
+            return await self.async_step_init()
+        else:
+            return await self.async_step_preset_modes()
+
+    async def async_step_preset_modes(self, user_input: dict[str, Any] | None = None):
+        if user_input is None:
+            return self.async_show_form(
+                step_id="preset_modes",
+                data_schema=vol.Schema(
+                    {
+                        vol.Optional(
+                            CONF_MODES,
+                            default=self.config_entry.options.get(
+                                CONF_PRESET_MODES, []
+                            ),
+                        ): selector.SelectSelector(
+                            selector.SelectSelectorConfig(
+                                multiple=True,
+                                custom_value=True,
+                                mode=SelectSelectorMode.DROPDOWN,
+                                translation_key="preset_mode",
+                                options=PRESET_MODES,
+                            )
+                        ),
+                    }
+                ),
+            )
+
+        self.result[CONF_PRESET_MODES] = user_input[CONF_MODES]
         if self._is_previously_configured():
             return await self.async_step_init()
         else:
