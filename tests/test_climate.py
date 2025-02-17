@@ -44,24 +44,12 @@ async def test_setup(
     assert entity_registry.async_get(hass).entities["climate.name_test"]
 
 
-async def test_setup_without_options(
-    hass: HomeAssistant,
-    config_entry: MockConfigEntry,
-    caplog: LogCaptureFixture,
-):
-    config_entry.options = None
-    assert await async_setup_component(hass, DOMAIN, {}) is True
-    await hass.async_block_till_done()
-    assert "climate.name_test" not in entity_registry.async_get(hass).entities
-    assert "Climate remote control platform is not configured, skip." in caplog.text
-
-
 async def test_setup_with_empty_options(
     hass: HomeAssistant,
     config_entry: MockConfigEntry,
     caplog: LogCaptureFixture,
 ):
-    config_entry.options = {}
+    hass.config_entries.async_update_entry(entry=config_entry, options={})
     assert await async_setup_component(hass, DOMAIN, {}) is True
     await hass.async_block_till_done()
     assert "climate.name_test" not in entity_registry.async_get(hass).entities

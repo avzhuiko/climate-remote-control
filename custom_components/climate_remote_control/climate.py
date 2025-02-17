@@ -67,7 +67,7 @@ async def async_setup_entry(
     async_add_devices: AddEntitiesCallback,
 ) -> None:
     """Set up climate device"""
-    if config_entry.options is None or config_entry.options == {}:
+    if config_entry.options == {}:
         _LOGGER.debug("Climate remote control platform is not configured, skip.")
         return
 

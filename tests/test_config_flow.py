@@ -60,7 +60,7 @@ async def test_config_flow(hass: HomeAssistant):
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
 
-    assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
     assert result["step_id"] == "user"
 
     """Configuring general info"""
@@ -72,7 +72,7 @@ async def test_config_flow(hass: HomeAssistant):
         },
     )
 
-    assert result["type"] == data_entry_flow.RESULT_TYPE_CREATE_ENTRY
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result["title"] == "my air conditioner"
     assert result["context"][CONF_UNIQUE_ID] == "unique_id_1"
     assert result["result"]
@@ -187,7 +187,7 @@ async def test_options_flow_with_new_configuration(hass: HomeAssistant):
         user_input={"modes": [PRESET_NONE, PRESET_BOOST]},
     )
 
-    assert result["type"] == data_entry_flow.RESULT_TYPE_CREATE_ENTRY
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result["title"] == "name_test"
     assert result["result"]
 
