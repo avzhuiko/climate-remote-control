@@ -2,7 +2,7 @@
 name = "climate-remote-control"
 dynamic = ["version"]
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 classifiers = [
     "Programming Language :: Python :: 3",
 ]
@@ -29,7 +29,7 @@ source = [
 show_missing = "true"
 
 [tool.black]
-target-version = ["py312"]
+target-version = ["py313"]
 
 [tool.isort]
 # https://github.com/PyCQA/isort/wiki/isort-Settings
