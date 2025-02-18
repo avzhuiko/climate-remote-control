@@ -97,6 +97,13 @@ command". You can find formats for parameters below:
 | Temperature range | temprange:<low temperature value with precision 1>:<high temperature value with precision 1> | temprange:22.0:24.0 |
 | Humidity (TBD)    | humid:\<target humidity level\>                                                              | humid:50            |
 
+## Special commands
+
+| Command | Description                                                                                                                        |
+|---------|------------------------------------------------------------------------------------------------------------------------------------|
+| off     | Sends when HVAC mode "OFF" is chosen                                                                                               |
+| on      | Sends when previous HVAC mode was "OFF". Add command if your climate unit doesn't turn on automatically when you change parameters |
+
 ## Command structure
 
 If changed parameter belongs to grouping attributes, all parameters from grouping attributes will be concatenated via

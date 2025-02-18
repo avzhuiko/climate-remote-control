@@ -1,5 +1,6 @@
 """Platform for light integration."""
 
+import asyncio
 import logging
 from typing import Any
 
@@ -18,9 +19,18 @@ from homeassistant.components.climate import (
     ClimateEntityFeature,
     HVACMode,
 )
+from homeassistant.components.remote import (
+    ATTR_DELAY_SECS,
+    ATTR_DEVICE,
+    ATTR_HOLD_SECS,
+    ATTR_NUM_REPEATS,
+)
+from homeassistant.components.remote import (
+    SERVICE_SEND_COMMAND,
+)
 from homeassistant.components.remote import DOMAIN as RM_DOMAIN
-from homeassistant.components.remote import SERVICE_SEND_COMMAND
 from homeassistant.const import (
+    ATTR_COMMAND,
     CONF_DEVICE,
     CONF_TARGET,
     CONF_TEMPERATURE_UNIT,
@@ -263,7 +273,7 @@ class AcRemote(ClimateEntity, RestoreEntity):
             commands.append(self._get_attr_command(grouping_key))
         return "_".join(str(x) for x in commands)
 
-    def _call_remote_command(self, command: str):
+    async def _async_call_remote_command(self, command: str, should_learn: bool = True):
         services = self.hass.services
         _LOGGER.debug(
             "Calling service %s.%s, with command=%s, device=%s, target=%s",
@@ -274,27 +284,27 @@ class AcRemote(ClimateEntity, RestoreEntity):
             self._target,
         )
         try:
-            services.call(
+            await services.async_call(
                 domain=RM_DOMAIN,
                 service=SERVICE_SEND_COMMAND,
                 service_data={
-                    "command": command,
-                    # todo: from config
-                    "num_repeats": 1,
-                    "delay_secs": 0,
-                    "hold_secs": 0,
-                    "device": self._device,
+                    ATTR_COMMAND: command,
+                    ATTR_NUM_REPEATS: 1,
+                    ATTR_DELAY_SECS: 0,
+                    ATTR_HOLD_SECS: 0,
+                    ATTR_DEVICE: self._device,
                 },
                 target=self._target,
                 blocking=True,
             )
         except ValueError:
             """todo: send permanent notification to learn new command"""
-            _LOGGER.warning(
-                'Command "%s" for device "%s" not found. You should learn it.',
-                command,
-                self._device,
-            )
+            if should_learn:
+                _LOGGER.warning(
+                    'Command "%s" for device "%s" not found. You should learn it.',
+                    command,
+                    self._device,
+                )
 
     async def _async_update_current_temperature_changed(
         self, event: Event[EventStateChangedData]
@@ -389,13 +399,13 @@ class AcRemote(ClimateEntity, RestoreEntity):
             )
             self._async_update_current_humidity(current_humidity_sensor_state)
 
-    def set_temperature(self, **kwargs: Any) -> None:
+    async def async_set_temperature(self, **kwargs: Any) -> None:
         temperature: float | None = kwargs.get(ATTR_TEMPERATURE)
         if temperature is not None:
             self._attr_target_temperature = temperature
             command = self._get_command(ATTR_TEMPERATURE)
             self._reset_preset_mode()
-            self._call_remote_command(command)
+            await self._async_call_remote_command(command)
             return
         temperature_low: float | None = kwargs.get(ATTR_TARGET_TEMP_LOW)
         temperature_high: float | None = kwargs.get(ATTR_TARGET_TEMP_HIGH)
@@ -404,42 +414,43 @@ class AcRemote(ClimateEntity, RestoreEntity):
             self._attr_target_temperature_high = temperature_high
             command = self._get_command(ATTR_TEMPERATURE_RANGE)
             self._reset_preset_mode()
-            self._call_remote_command(command)
+            await self._async_call_remote_command(command)
         else:
             raise ValueError("temperature_low and temperature_high must be provided")
 
-    def set_humidity(self, humidity: int) -> None:
+    async def async_set_humidity(self, humidity: int) -> None:
         self._attr_target_humidity = humidity
         command = self._get_command(ATTR_HUMIDITY)
-        self._call_remote_command(command)
+        await self._async_call_remote_command(command)
 
-    def set_hvac_mode(self, hvac_mode: HVACMode) -> None:
+    async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         old_mode = self._attr_hvac_mode
         self._attr_hvac_mode = hvac_mode
         self._reset_preset_mode()
         self._fill_temperature_attributes(self._get_temperature_conf())
         if hvac_mode == HVACMode.OFF:
-            self._call_remote_command("off")
+            await self._async_call_remote_command("off")
             return
         if hvac_mode != HVACMode.OFF and old_mode == HVACMode.OFF:
-            self._call_remote_command("on")
+            await self._async_call_remote_command("on", False)
+            await asyncio.sleep(1)
         command = self._get_command(ATTR_HVAC_MODE)
-        self._call_remote_command(command)
+        await self._async_call_remote_command(command)
 
-    def set_swing_mode(self, swing_mode: str) -> None:
+    async def async_set_swing_mode(self, swing_mode: str) -> None:
         self._attr_swing_mode = swing_mode
         command = self._get_command(ATTR_SWING_MODE)
-        self._call_remote_command(command)
+        await self._async_call_remote_command(command)
 
-    def set_fan_mode(self, fan_mode: str) -> None:
+    async def async_set_fan_mode(self, fan_mode: str) -> None:
         self._attr_fan_mode = fan_mode
         command = self._get_command(ATTR_FAN_MODE)
-        self._call_remote_command(command)
+        await self._async_call_remote_command(command)
 
-    def set_preset_mode(self, preset_mode: str) -> None:
+    async def async_set_preset_mode(self, preset_mode: str) -> None:
         self._attr_preset_mode = preset_mode
         command = self._get_command(ATTR_PRESET_MODE)
-        self._call_remote_command(command)
+        await self._async_call_remote_command(command)
 
     def _reset_preset_mode(self) -> None:
         if (

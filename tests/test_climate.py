@@ -1,4 +1,5 @@
-from unittest.mock import call, patch
+import logging
+from unittest.mock import patch
 
 from _pytest.logging import LogCaptureFixture
 from homeassistant.components.climate import (
@@ -17,12 +18,22 @@ from homeassistant.components.climate import (
     ClimateEntityFeature,
     HVACMode,
 )
-from homeassistant.const import ATTR_TEMPERATURE
+from homeassistant.components.remote import (
+    ATTR_DELAY_SECS,
+    ATTR_DEVICE,
+    ATTR_HOLD_SECS,
+    ATTR_NUM_REPEATS,
+    SERVICE_SEND_COMMAND,
+)
+from homeassistant.const import ATTR_COMMAND, ATTR_ENTITY_ID, ATTR_TEMPERATURE, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry
 from homeassistant.setup import async_setup_component
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_mock_service,
+)
 
 from custom_components.climate_remote_control.climate import AcRemote
 from custom_components.climate_remote_control.const import (
@@ -225,11 +236,11 @@ async def test_set_fan_mode(
         ),
         patch.object(
             climate_remote_control,
-            attribute="_call_remote_command",
-        ) as mock_call_remote_command,
+            attribute="_async_call_remote_command",
+        ) as mock_async_call_remote_command,
     ):
         await climate_remote_control.async_set_fan_mode(FAN_LOW)
-        mock_call_remote_command.assert_called_once_with("test_command")
+        mock_async_call_remote_command.assert_called_once_with("test_command")
 
 
 async def test_set_swing_mode(
@@ -243,11 +254,11 @@ async def test_set_swing_mode(
         ),
         patch.object(
             climate_remote_control,
-            attribute="_call_remote_command",
-        ) as mock_call_remote_command,
+            attribute="_async_call_remote_command",
+        ) as mock_async_call_remote_command,
     ):
         await climate_remote_control.async_set_swing_mode(SWING_VERTICAL)
-        mock_call_remote_command.assert_called_once_with("test_command")
+        mock_async_call_remote_command.assert_called_once_with("test_command")
 
 
 async def test_set_target_temperature(
@@ -263,13 +274,13 @@ async def test_set_target_temperature(
         ) as mock_get_command,
         patch.object(
             climate_remote_control,
-            attribute="_call_remote_command",
-        ) as mock_call_remote_command,
+            attribute="_async_call_remote_command",
+        ) as mock_async_call_remote_command,
     ):
         await climate_remote_control.async_set_temperature(**{ATTR_TEMPERATURE: 23})
 
         mock_get_command.assert_called_once_with(ATTR_TEMPERATURE)
-        mock_call_remote_command.assert_called_once_with("test_command")
+        mock_async_call_remote_command.assert_called_once_with("test_command")
         assert climate_remote_control._attr_target_temperature == 23
         assert climate_remote_control._attr_preset_mode == PRESET_NONE
 
@@ -287,15 +298,15 @@ async def test_set_target_temperature_range(
         ) as mock_get_command,
         patch.object(
             climate_remote_control,
-            attribute="_call_remote_command",
-        ) as mock_call_remote_command,
+            attribute="_async_call_remote_command",
+        ) as mock_async_call_remote_command,
     ):
         await climate_remote_control.async_set_temperature(
             **{ATTR_TARGET_TEMP_LOW: 23, ATTR_TARGET_TEMP_HIGH: 25.5}
         )
 
         mock_get_command.assert_called_once_with(ATTR_TEMPERATURE_RANGE)
-        mock_call_remote_command.assert_called_once_with("test_command")
+        mock_async_call_remote_command.assert_called_once_with("test_command")
         assert climate_remote_control._attr_target_temperature_low == 23
         assert climate_remote_control._attr_target_temperature_high == 25.5
         assert climate_remote_control._attr_preset_mode == PRESET_NONE
@@ -314,8 +325,8 @@ async def test_set_target_temperature_range_without_low(
         ) as mock_get_command,
         patch.object(
             climate_remote_control,
-            attribute="_call_remote_command",
-        ) as mock_call_remote_command,
+            attribute="_async_call_remote_command",
+        ) as mock_async_call_remote_command,
     ):
         with pytest.raises(ValueError) as ex:
             await climate_remote_control.async_set_temperature(
@@ -325,51 +336,75 @@ async def test_set_target_temperature_range_without_low(
             ex.value.args[0] == "temperature_low and temperature_high must be provided"
         )
         mock_get_command.assert_not_called()
-        mock_call_remote_command.assert_not_called()
+        mock_async_call_remote_command.assert_not_called()
 
 
 async def test_set_humidity(
+    hass: HomeAssistant,
     climate_remote_control: AcRemote,
+    remote_entity_id: str,
 ):
-    with (
-        patch.object(
-            climate_remote_control,
-            attribute="_get_command",
-            return_value="test_command",
-        ),
-        patch.object(
-            climate_remote_control,
-            attribute="_call_remote_command",
-        ) as mock_call_remote_command,
-    ):
-        await climate_remote_control.async_set_humidity(55)
-        mock_call_remote_command.assert_called_once_with("test_command")
+    send_command_service_calls = async_mock_service(
+        hass=hass,
+        domain=Platform.REMOTE,
+        service=SERVICE_SEND_COMMAND,
+    )
 
-
-async def test_set_hvac_mode_was_off(
-    climate_remote_control: AcRemote,
-):
     climate_remote_control._attr_hvac_mode = HVACMode.OFF
+    climate_remote_control._attr_fan_mode = FAN_MEDIUM
+    climate_remote_control._attr_target_temperature = 20
+
+    await climate_remote_control.async_set_humidity(55)
+
+    expected_command = "humid:55"
+    assert len(send_command_service_calls) == 1
+    assert send_command_service_calls[0].data[ATTR_COMMAND] == expected_command
+    assert send_command_service_calls[0].data[ATTR_NUM_REPEATS] == 1
+    assert send_command_service_calls[0].data[ATTR_DELAY_SECS] == 0
+    assert send_command_service_calls[0].data[ATTR_HOLD_SECS] == 0
+    assert send_command_service_calls[0].data[ATTR_DEVICE] is not None
+
+
+async def test_set_hvac_mode(
+    hass: HomeAssistant,
+    climate_remote_control: AcRemote,
+    remote_entity_id: str,
+    caplog: LogCaptureFixture,
+):
+    send_command_service_calls = async_mock_service(
+        hass=hass,
+        domain=Platform.REMOTE,
+        service=SERVICE_SEND_COMMAND,
+        raise_exception=ValueError(""),
+    )
+    climate_remote_control._attr_hvac_mode = HVACMode.OFF
+    climate_remote_control._attr_fan_mode = FAN_MEDIUM
+    climate_remote_control._attr_target_temperature = 20
     climate_remote_control._attr_preset_mode = PRESET_BOOST
 
-    with (
-        patch.object(
-            climate_remote_control,
-            attribute="_get_command",
-            return_value="test_command",
-        ) as mock_get_command,
-        patch.object(
-            climate_remote_control,
-            attribute="_call_remote_command",
-        ) as mock_call_remote_command,
-    ):
-        await climate_remote_control.async_set_hvac_mode(HVACMode.HEAT)
+    expected_command = "mode:heat_fan:medium_temp:20"
+    caplog.set_level(logging.WARNING)
 
-        assert climate_remote_control._attr_preset_mode == PRESET_NONE
-        mock_get_command.assert_called_once_with(ATTR_HVAC_MODE)
-        assert mock_call_remote_command.call_count == 2
-        assert mock_call_remote_command.call_args_list[0] == call("on")
-        assert mock_call_remote_command.call_args_list[1] == call("test_command")
+    await climate_remote_control.async_set_hvac_mode(HVACMode.HEAT)
+
+    assert climate_remote_control._attr_preset_mode == PRESET_NONE
+    assert len(send_command_service_calls) == 2
+    assert send_command_service_calls[0].data[ATTR_COMMAND] == "on"
+    assert send_command_service_calls[0].data[ATTR_NUM_REPEATS] == 1
+    assert send_command_service_calls[0].data[ATTR_DELAY_SECS] == 0
+    assert send_command_service_calls[0].data[ATTR_HOLD_SECS] == 0
+    assert send_command_service_calls[0].data[ATTR_DEVICE] is not None
+    assert send_command_service_calls[0].data[ATTR_ENTITY_ID][0] == remote_entity_id
+    assert send_command_service_calls[1].data[ATTR_COMMAND] == expected_command
+    assert send_command_service_calls[1].data[ATTR_NUM_REPEATS] == 1
+    assert send_command_service_calls[1].data[ATTR_DELAY_SECS] == 0
+    assert send_command_service_calls[1].data[ATTR_HOLD_SECS] == 0
+    assert send_command_service_calls[1].data[ATTR_DEVICE] is not None
+    assert send_command_service_calls[1].data[ATTR_ENTITY_ID][0] == remote_entity_id
+    assert (
+        'Command "on' + '" for device "test" not found. You should learn it.'
+        not in caplog.text
+    )
 
 
 async def test_set_hvac_mode_set_off(
@@ -379,10 +414,10 @@ async def test_set_hvac_mode_set_off(
 
     with patch.object(
         climate_remote_control,
-        attribute="_call_remote_command",
-    ) as mock_call_remote_command:
+        attribute="_async_call_remote_command",
+    ) as mock_async_call_remote_command:
         await climate_remote_control.async_set_hvac_mode(HVACMode.OFF)
-        mock_call_remote_command.assert_called_once_with("off")
+        mock_async_call_remote_command.assert_called_once_with("off")
 
 
 async def test_set_preset_mode(
@@ -396,12 +431,12 @@ async def test_set_preset_mode(
         ) as mock_get_command,
         patch.object(
             climate_remote_control,
-            attribute="_call_remote_command",
-        ) as mock_call_remote_command,
+            attribute="_async_call_remote_command",
+        ) as mock_async_call_remote_command,
     ):
         await climate_remote_control.async_set_preset_mode(PRESET_BOOST)
         mock_get_command.assert_called_once_with(ATTR_PRESET_MODE)
-        mock_call_remote_command.assert_called_once_with("test_command")
+        mock_async_call_remote_command.assert_called_once_with("test_command")
 
 
 async def test_reset_preset_mode_without_preset_modes(
