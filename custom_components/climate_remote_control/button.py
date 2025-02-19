@@ -99,7 +99,6 @@ class AcRemoteSwingToggle(ButtonEntity):
                 service_data={
                     "command": command,
                     "device": self.device,
-                    # todo: from config
                     "num_repeats": 1,
                     "delay_secs": 0,
                     "hold_secs": 0,

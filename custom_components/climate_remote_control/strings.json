@@ -17,7 +17,7 @@
         "title": "Menu",
         "menu_options": {
           "device": "Device",
-          "target": "Target",
+          "target": "Target for action \"Remote: send command\"",
           "temperature": "Temperature",
           "swing": "Swing",
           "hvac_modes": "HVAC modes",
@@ -34,12 +34,12 @@
           "device": "Device code"
         },
         "data_description": {
-          "device": "Device code which will be used for calling service \"Remote: send command\""
+          "device": "Device code which will be used for calling action \"Remote: send command\""
         }
       },
       "target": {
         "title": "Target",
-        "description": "Please select at least one target for service \"Remote: send command\"",
+        "description": "Please select at least one target for action \"Remote: send command\"",
         "data": {
           "entity_id": "Entities",
           "device_id": "Devices",
@@ -164,7 +164,13 @@
         "top": "Top",
         "middle": "Middle",
         "focus": "Focus",
-        "diffuse": "Diffuse"
+        "diffuse": "Diffuse",
+        "1": "Speed 1",
+        "2": "Speed 2",
+        "3": "Speed 3",
+        "4": "Speed 4",
+        "5": "Speed 5",
+        "6": "Speed 6"
       }
     },
     "grouping_attribute": {
