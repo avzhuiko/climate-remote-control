@@ -22,6 +22,7 @@ from homeassistant.helpers.selector import SelectSelectorMode
 import voluptuous as vol
 
 from .const import (
+    CONF_CAN_DISABLE_ENTITY_FEATURES,
     CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID,
     CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID,
     CONF_FAN_MODES,
@@ -111,8 +112,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     "device",
                     "target",
                     "temperature",
-                    "swing",
                     "hvac_modes",
+                    "swing",
                     "fan_modes",
                     "grouping_attributes",
                     "sensors",
@@ -318,13 +319,20 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         errors = {}
         if user_input is not None:
             selected_modes = user_input[CONF_MODES]
+            can_disable_entity_features = user_input[CONF_CAN_DISABLE_ENTITY_FEATURES]
             if len(selected_modes) == 0:
                 errors[CONF_MODES] = "hvac_modes_is_empty"
             else:
                 self.result[CONF_HVAC_MODES] = {}
                 for mode in selected_modes:
                     self.result[CONF_HVAC_MODES][mode] = {}
-                    if mode in (HVACMode.OFF, HVACMode.FAN_ONLY, HVACMode.DRY):
+                    self.result[CONF_CAN_DISABLE_ENTITY_FEATURES] = (
+                        can_disable_entity_features
+                    )
+                    if (
+                        mode in (HVACMode.OFF, HVACMode.FAN_ONLY, HVACMode.DRY)
+                        and can_disable_entity_features
+                    ):
                         self.result[CONF_HVAC_MODES][mode][CONF_TEMPERATURE] = (
                             TEMPERATURE_SCHEMA({CONF_MODE: TemperatureMode.NONE})
                         )
@@ -345,6 +353,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                                 options=HVAC_MODES,
                             )
                         ),
+                        vol.Required(
+                            CONF_CAN_DISABLE_ENTITY_FEATURES,
+                            default=self.config_entry.options.get(
+                                CONF_CAN_DISABLE_ENTITY_FEATURES, True
+                            ),
+                        ): bool,
                     }
                 ),
                 errors=errors,
