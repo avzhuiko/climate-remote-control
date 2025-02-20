@@ -41,6 +41,7 @@ from custom_components.climate_remote_control.const import (
     CONF_MAX,
     CONF_MIN,
     CONF_MODE,
+    CONF_TEMPERATURE,
     DOMAIN,
     TemperatureMode,
 )
@@ -418,6 +419,56 @@ async def test_set_hvac_mode_set_off(
     ) as mock_async_call_remote_command:
         await climate_remote_control.async_set_hvac_mode(HVACMode.OFF)
         mock_async_call_remote_command.assert_called_once_with("off")
+
+
+async def test_filling_temperature_attributes_without_temperature(
+    hass: HomeAssistant,
+    climate_remote_control: AcRemote,
+):
+    async_mock_service(
+        hass=hass,
+        domain=Platform.REMOTE,
+        service=SERVICE_SEND_COMMAND,
+    )
+    climate_remote_control._attr_hvac_mode = HVACMode.COOL
+    climate_remote_control._hvac_modes_conf[HVACMode.HEAT][CONF_TEMPERATURE] = {
+        CONF_MODE: TemperatureMode.NONE,
+    }
+
+    await climate_remote_control.async_set_hvac_mode(HVACMode.HEAT)
+
+    assert (
+        climate_remote_control._attr_supported_features
+        & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
+        == 0
+    )
+
+
+async def test_filling_temperature_attributes_with_temperature_range(
+    hass: HomeAssistant,
+    climate_remote_control: AcRemote,
+):
+    async_mock_service(
+        hass=hass,
+        domain=Platform.REMOTE,
+        service=SERVICE_SEND_COMMAND,
+    )
+    climate_remote_control._attr_hvac_mode = HVACMode.COOL
+    climate_remote_control._hvac_modes_conf[HVACMode.HEAT][CONF_TEMPERATURE] = {
+        CONF_MODE: TemperatureMode.RANGE,
+        CONF_MIN: 20,
+        CONF_MAX: 30,
+    }
+
+    await climate_remote_control.async_set_hvac_mode(HVACMode.HEAT)
+
+    assert (
+        climate_remote_control._attr_supported_features
+        & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
+        == ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
+    )
+    assert climate_remote_control._attr_target_temperature_low == 20
+    assert climate_remote_control._attr_target_temperature_high == 20
 
 
 async def test_set_preset_mode(

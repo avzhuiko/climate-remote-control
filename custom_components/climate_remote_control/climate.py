@@ -57,6 +57,8 @@ from .const import (
     CONF_FAN_MODES,
     CONF_GROUPING_ATTRIBUTES,
     CONF_HVAC_MODES,
+    CONF_MAX,
+    CONF_MIN,
     CONF_MODE,
     CONF_MODES,
     CONF_PRESET_MODES,
@@ -186,20 +188,26 @@ class AcRemote(ClimateEntity, RestoreEntity):
                 self._attr_supported_features & ClimateEntityFeature.TARGET_TEMPERATURE
             )
             return
-        self._attr_min_temp = temperature["min"]
-        self._attr_max_temp = temperature["max"]
+        self._attr_min_temp = temperature[CONF_MIN]
+        self._attr_max_temp = temperature[CONF_MAX]
         if temperature[CONF_MODE] == TemperatureMode.TARGET:
             self._attr_supported_features |= ClimateEntityFeature.TARGET_TEMPERATURE
             if self._attr_target_temperature is None:
-                self._attr_target_temperature = temperature["min"]
+                self._attr_target_temperature = temperature[CONF_MIN]
         if temperature[CONF_MODE] == TemperatureMode.RANGE:
             self._attr_supported_features |= (
                 ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
             )
-            if self._attr_target_temperature_low is None:
-                self._attr_target_temperature_low = temperature["min"]
-            if self._attr_target_temperature_high is None:
-                self._attr_target_temperature_high = temperature["min"]
+            if (
+                not hasattr(self, "_attr_target_temperature_low")
+                or self._attr_target_temperature_low is None
+            ):
+                self._attr_target_temperature_low = temperature[CONF_MIN]
+            if (
+                not hasattr(self, "_attr_target_temperature_high")
+                or self._attr_target_temperature_high is None
+            ):
+                self._attr_target_temperature_high = temperature[CONF_MIN]
 
     def _get_attr_command(self, key: str) -> str:
         attr_key = key

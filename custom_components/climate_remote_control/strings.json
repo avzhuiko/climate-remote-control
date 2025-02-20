@@ -14,13 +14,13 @@
   "options": {
     "step": {
       "init": {
-        "title": "Menu",
+        "title": "Configuration",
         "menu_options": {
           "device": "Device",
           "target": "Target for action \"Remote: send command\"",
           "temperature": "Temperature",
-          "swing": "Swing",
           "hvac_modes": "HVAC modes",
+          "swing": "Swing",
           "fan_modes": "Fan modes",
           "grouping_attributes": "Grouping attributes",
           "sensors": "Sensors",
@@ -71,7 +71,11 @@
         "title": "HVAC modes",
         "description": "Choose applicable HVAC modes for your climate",
         "data": {
-          "modes": "HVAC modes"
+          "modes": "HVAC modes",
+          "can_disable_entity_features": "Can disable entity features"
+        },
+        "data_description": {
+          "can_disable_entity_features": "If this feature is enabled then some of HVAC modes can disable ClimateEntityFeatures. It leads hiding some settings from UI. At the same time it can hide entity from automations if current state of climate entity will not support a particular feature"
         }
       },
       "fan_modes": {
