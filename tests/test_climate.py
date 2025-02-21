@@ -10,14 +10,19 @@ from homeassistant.components.climate import (
     ATTR_SWING_MODE,
     ATTR_TARGET_TEMP_HIGH,
     ATTR_TARGET_TEMP_LOW,
+)
+from homeassistant.components.climate import (
     FAN_LOW,
     FAN_MEDIUM,
     PRESET_BOOST,
     PRESET_NONE,
+    SERVICE_SET_HVAC_MODE,
+    SERVICE_SET_TEMPERATURE,
     SWING_VERTICAL,
     ClimateEntityFeature,
     HVACMode,
 )
+from homeassistant.components.climate import DOMAIN as CLIMATE_DOMAIN
 from homeassistant.components.remote import (
     ATTR_DELAY_SECS,
     ATTR_DEVICE,
@@ -35,9 +40,10 @@ from pytest_homeassistant_custom_component.common import (
     async_mock_service,
 )
 
-from custom_components.climate_remote_control.climate import AcRemote
+from custom_components.climate_remote_control.climate import RestoreAcRemote
 from custom_components.climate_remote_control.const import (
     ATTR_TEMPERATURE_RANGE,
+    CONF_CAN_DISABLE_ENTITY_FEATURES,
     CONF_MAX,
     CONF_MIN,
     CONF_MODE,
@@ -69,7 +75,7 @@ async def test_setup_with_empty_options(
 
 
 async def test_get_attr_command(
-    climate_remote_control: AcRemote,
+    climate_remote_control: RestoreAcRemote,
 ):
     climate_remote_control._attr_hvac_mode = HVACMode.HEAT
     climate_remote_control._attr_fan_mode = FAN_MEDIUM
@@ -105,7 +111,7 @@ async def test_get_attr_command(
 
 
 async def test_get_temperature_conf(
-    climate_remote_control: AcRemote,
+    climate_remote_control: RestoreAcRemote,
 ):
     climate_remote_control._hvac_modes_conf = {
         HVACMode.OFF: {
@@ -144,7 +150,7 @@ async def test_get_temperature_conf(
 
 
 async def test_get_grouping_attributes(
-    climate_remote_control: AcRemote,
+    climate_remote_control: RestoreAcRemote,
 ):
     # all attributes
     climate_remote_control._grouping_attributes = [
@@ -189,7 +195,7 @@ async def test_get_grouping_attributes(
 
 
 async def test_get_command_in_grouping_attributes(
-    climate_remote_control: AcRemote,
+    climate_remote_control: RestoreAcRemote,
 ):
     with (
         patch.object(
@@ -208,7 +214,7 @@ async def test_get_command_in_grouping_attributes(
 
 
 async def test_get_command_not_in_grouping_attributes(
-    climate_remote_control: AcRemote,
+    climate_remote_control: RestoreAcRemote,
 ):
     with (
         patch.object(
@@ -227,7 +233,7 @@ async def test_get_command_not_in_grouping_attributes(
 
 
 async def test_set_fan_mode(
-    climate_remote_control: AcRemote,
+    climate_remote_control: RestoreAcRemote,
 ):
     with (
         patch.object(
@@ -245,7 +251,7 @@ async def test_set_fan_mode(
 
 
 async def test_set_swing_mode(
-    climate_remote_control: AcRemote,
+    climate_remote_control: RestoreAcRemote,
 ):
     with (
         patch.object(
@@ -263,7 +269,7 @@ async def test_set_swing_mode(
 
 
 async def test_set_target_temperature(
-    climate_remote_control: AcRemote,
+    climate_remote_control: RestoreAcRemote,
 ):
     climate_remote_control._attr_preset_mode = PRESET_BOOST
 
@@ -287,7 +293,7 @@ async def test_set_target_temperature(
 
 
 async def test_set_target_temperature_range(
-    climate_remote_control: AcRemote,
+    climate_remote_control: RestoreAcRemote,
 ):
     climate_remote_control._attr_preset_mode = PRESET_BOOST
 
@@ -314,7 +320,7 @@ async def test_set_target_temperature_range(
 
 
 async def test_set_target_temperature_range_without_low(
-    climate_remote_control: AcRemote,
+    climate_remote_control: RestoreAcRemote,
 ):
     climate_remote_control._attr_preset_mode = PRESET_BOOST
 
@@ -342,7 +348,7 @@ async def test_set_target_temperature_range_without_low(
 
 async def test_set_humidity(
     hass: HomeAssistant,
-    climate_remote_control: AcRemote,
+    climate_remote_control: RestoreAcRemote,
     remote_entity_id: str,
 ):
     send_command_service_calls = async_mock_service(
@@ -368,7 +374,7 @@ async def test_set_humidity(
 
 async def test_set_hvac_mode(
     hass: HomeAssistant,
-    climate_remote_control: AcRemote,
+    climate_remote_control: RestoreAcRemote,
     remote_entity_id: str,
     caplog: LogCaptureFixture,
 ):
@@ -409,7 +415,7 @@ async def test_set_hvac_mode(
 
 
 async def test_set_hvac_mode_set_off(
-    climate_remote_control: AcRemote,
+    climate_remote_control: RestoreAcRemote,
 ):
     climate_remote_control._attr_hvac_mode = HVACMode.HEAT
 
@@ -423,7 +429,7 @@ async def test_set_hvac_mode_set_off(
 
 async def test_filling_temperature_attributes_without_temperature(
     hass: HomeAssistant,
-    climate_remote_control: AcRemote,
+    climate_remote_control: RestoreAcRemote,
 ):
     async_mock_service(
         hass=hass,
@@ -446,7 +452,7 @@ async def test_filling_temperature_attributes_without_temperature(
 
 async def test_filling_temperature_attributes_with_temperature_range(
     hass: HomeAssistant,
-    climate_remote_control: AcRemote,
+    climate_remote_control: RestoreAcRemote,
 ):
     async_mock_service(
         hass=hass,
@@ -472,7 +478,7 @@ async def test_filling_temperature_attributes_with_temperature_range(
 
 
 async def test_set_preset_mode(
-    climate_remote_control: AcRemote,
+    climate_remote_control: RestoreAcRemote,
 ):
     with (
         patch.object(
@@ -491,7 +497,7 @@ async def test_set_preset_mode(
 
 
 async def test_reset_preset_mode_without_preset_modes(
-    climate_remote_control: AcRemote,
+    climate_remote_control: RestoreAcRemote,
 ):
     climate_remote_control._attr_preset_mode = None
     climate_remote_control._attr_preset_modes = None
@@ -499,3 +505,46 @@ async def test_reset_preset_mode_without_preset_modes(
     climate_remote_control._reset_preset_mode()
 
     assert climate_remote_control._attr_preset_mode is None
+
+
+async def test_restoring_temperature_state(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    climate_remote_control: RestoreAcRemote,
+):
+    async_mock_service(
+        hass=hass,
+        domain=Platform.REMOTE,
+        service=SERVICE_SEND_COMMAND,
+    )
+    assert await async_setup_component(hass, DOMAIN, {}) is True
+    hass.config_entries.async_update_entry(
+        entry=config_entry,
+        options=config_entry.options | {CONF_CAN_DISABLE_ENTITY_FEATURES: True},
+    )
+    await hass.async_block_till_done()
+    await hass.services.async_call(
+        domain=CLIMATE_DOMAIN,
+        service=SERVICE_SET_TEMPERATURE,
+        service_data={ATTR_TEMPERATURE: 20},
+        target={ATTR_ENTITY_ID: "climate.name_test"},
+        blocking=True,
+    )
+    await hass.services.async_call(
+        domain=CLIMATE_DOMAIN,
+        service=SERVICE_SET_HVAC_MODE,
+        service_data={ATTR_HVAC_MODE: HVACMode.HEAT},
+        target={ATTR_ENTITY_ID: "climate.name_test"},
+        blocking=True,
+    )
+    await hass.services.async_call(
+        domain=CLIMATE_DOMAIN,
+        service=SERVICE_SET_HVAC_MODE,
+        service_data={ATTR_HVAC_MODE: HVACMode.OFF},
+        target={ATTR_ENTITY_ID: "climate.name_test"},
+        blocking=True,
+    )
+
+    await hass.config_entries.async_reload(config_entry.entry_id)
+
+    assert hass.states.get("climate.name_test").attributes.get(CONF_TEMPERATURE) == 20

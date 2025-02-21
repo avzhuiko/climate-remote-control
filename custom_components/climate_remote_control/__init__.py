@@ -1,4 +1,5 @@
 """Climate remote control integration"""
+
 import logging
 
 from homeassistant import config_entries
@@ -25,10 +26,7 @@ async def async_unload_entry(
     hass: HomeAssistant, config_entry: config_entries.ConfigEntry
 ) -> bool:
     """Unload a config entry."""
-    unload_ok = await hass.config_entries.async_unload_platforms(
-        config_entry, PLATFORMS
-    )
-    return unload_ok
+    return await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
 
 
 async def update_listener(

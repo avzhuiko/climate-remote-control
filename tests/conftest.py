@@ -29,9 +29,11 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_mock import MockerFixture
 
 from custom_components.climate_remote_control.climate import (
+    RestoreAcRemote,
+)
+from custom_components.climate_remote_control.climate import (
     async_setup_entry as climate_async_setup_entry,
 )
-from custom_components.climate_remote_control.climate import AcRemote
 from custom_components.climate_remote_control.const import (
     CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID,
     CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID,
@@ -140,7 +142,7 @@ def config_entry(
 @pytest.fixture
 async def climate_remote_control(
     hass: HomeAssistant, config_entry: MockConfigEntry, mocker: MockerFixture
-) -> AcRemote:
+) -> RestoreAcRemote:
     mock_async_add_devices = mocker.stub("async_add_devices")
     await climate_async_setup_entry(hass, config_entry, mock_async_add_devices)
     devices = mock_async_add_devices.call_args_list[0].args[0]

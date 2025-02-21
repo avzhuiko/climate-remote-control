@@ -1,8 +1,9 @@
-"""Platform for light integration."""
+"""Platform for climate integration."""
 
 import asyncio
+from dataclasses import dataclass
 import logging
-from typing import Any
+from typing import Any, Self
 
 from homeassistant import config_entries
 from homeassistant.components.climate import (
@@ -48,7 +49,7 @@ from homeassistant.core import (
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_state_change_event
-from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.helpers.restore_state import ExtraStoredData, RestoreEntity
 
 from .const import (
     ATTR_TEMPERATURE_RANGE,
@@ -83,10 +84,10 @@ async def async_setup_entry(
         _LOGGER.debug("Climate remote control platform is not configured, skip.")
         return
 
-    async_add_devices([AcRemote(config_entry)])
+    async_add_devices([RestoreAcRemote(config_entry)])
 
 
-class AcRemote(ClimateEntity, RestoreEntity):
+class AcRemote(ClimateEntity):
     """Representation of climate entity"""
 
     _attr_translation_key = DOMAIN
@@ -167,14 +168,12 @@ class AcRemote(ClimateEntity, RestoreEntity):
         self._target = options[CONF_TARGET]
 
         # Configure sensors
-        if CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID in options:
-            self._current_temperature_sensor_entity_id = options[
-                CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID
-            ]
-        if CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID in options:
-            self._current_humidity_sensor_entity_id = options[
-                CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID
-            ]
+        self._current_temperature_sensor_entity_id = getattr(
+            options, CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID, None
+        )
+        self._current_humidity_sensor_entity_id = getattr(
+            options, CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID, None
+        )
 
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, unique_id)},
@@ -198,15 +197,9 @@ class AcRemote(ClimateEntity, RestoreEntity):
             self._attr_supported_features |= (
                 ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
             )
-            if (
-                not hasattr(self, "_attr_target_temperature_low")
-                or self._attr_target_temperature_low is None
-            ):
+            if getattr(self, "_attr_target_temperature_low", None) is None:
                 self._attr_target_temperature_low = temperature[CONF_MIN]
-            if (
-                not hasattr(self, "_attr_target_temperature_high")
-                or self._attr_target_temperature_high is None
-            ):
+            if getattr(self, "_attr_target_temperature_high", None) is None:
                 self._attr_target_temperature_high = temperature[CONF_MIN]
 
     def _get_attr_command(self, key: str) -> str:
@@ -350,63 +343,6 @@ class AcRemote(ClimateEntity, RestoreEntity):
         except ValueError as ex:
             _LOGGER.error("Unable to update from humidity sensor: %s", ex)
 
-    @callback
-    def _async_restore_last_state(self, last_state: State) -> None:
-        """Restore previous state."""
-        attributes = last_state.attributes
-        self._attr_hvac_mode = last_state.state
-        if ATTR_FAN_MODE in attributes:
-            self._attr_fan_mode = attributes[ATTR_FAN_MODE]
-        if ATTR_PRESET_MODE in attributes:
-            self._attr_preset_mode = attributes[ATTR_PRESET_MODE]
-        if ATTR_SWING_MODE in attributes:
-            self._attr_swing_mode = attributes[ATTR_SWING_MODE]
-        if ATTR_TEMPERATURE in attributes:
-            self._attr_target_temperature = attributes[ATTR_TEMPERATURE]
-        if ATTR_TARGET_TEMP_LOW in attributes:
-            self._attr_target_temperature_low = attributes[ATTR_TARGET_TEMP_LOW]
-        if ATTR_TARGET_TEMP_HIGH in attributes:
-            self._attr_target_temperature_high = attributes[ATTR_TARGET_TEMP_HIGH]
-        self._fill_temperature_attributes(self._get_temperature_conf())
-
-    async def async_added_to_hass(self):
-        """Run when about to be added to hass."""
-        await super().async_added_to_hass()
-
-        last_state = await self.async_get_last_state()
-
-        if last_state is not None:
-            self._async_restore_last_state(last_state)
-
-        """Subscribe to current temperature sensor updates"""
-        if self._current_temperature_sensor_entity_id:
-            async_track_state_change_event(
-                self.hass,
-                self._current_temperature_sensor_entity_id,
-                self._async_update_current_temperature_changed,
-            )
-
-            current_temperature_sensor_state = self.hass.states.get(
-                self._current_temperature_sensor_entity_id
-            )
-            self._async_update_current_temperature(current_temperature_sensor_state)
-
-        """Subscribe to current humidity sensor updates"""
-        if (
-            hasattr(self, "_current_humidity_sensor_entity_id")
-            and self._current_humidity_sensor_entity_id
-        ):
-            async_track_state_change_event(
-                self.hass,
-                self._current_humidity_sensor_entity_id,
-                self._async_update_current_humidity_changed,
-            )
-
-            current_humidity_sensor_state = self.hass.states.get(
-                self._current_humidity_sensor_entity_id
-            )
-            self._async_update_current_humidity(current_humidity_sensor_state)
-
     async def async_set_temperature(self, **kwargs: Any) -> None:
         temperature: float | None = kwargs.get(ATTR_TEMPERATURE)
         if temperature is not None:
@@ -468,3 +404,110 @@ class AcRemote(ClimateEntity, RestoreEntity):
         ):
             return
         self._attr_preset_mode = PRESET_NONE
+
+
+@dataclass
+class AcRemoteExtraStoredData(ExtraStoredData):
+    """Object to hold extra stored data."""
+
+    target_temperature: float | None
+    target_temperature_low: float | None
+    target_temperature_high: float | None
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return a dict representation of additional data."""
+        target_temperature: float | None = self.target_temperature
+        target_temperature_low: float | None = self.target_temperature_low
+        target_temperature_high: float | None = self.target_temperature_high
+        return {
+            ATTR_TEMPERATURE: target_temperature,
+            ATTR_TARGET_TEMP_LOW: target_temperature_low,
+            ATTR_TARGET_TEMP_HIGH: target_temperature_high,
+        }
+
+    @classmethod
+    def from_dict(cls, restored: dict[str, Any]) -> Self | None:
+        """Initialize a stored state from a dict."""
+        try:
+            target_temperature = restored[ATTR_TEMPERATURE]
+            target_temperature_low = restored[ATTR_TARGET_TEMP_LOW]
+            target_temperature_high = restored[ATTR_TARGET_TEMP_HIGH]
+        except KeyError:
+            return None
+
+        return cls(target_temperature, target_temperature_low, target_temperature_high)
+
+
+class RestoreAcRemote(AcRemote, RestoreEntity):
+    """Mixin class for restoring previous state."""
+
+    @callback
+    async def _async_restore_last_state(self) -> None:
+        """Restore previous state."""
+        last_state = await self.async_get_last_state()
+        if last_state is not None:
+            attributes = last_state.attributes
+            self._attr_hvac_mode = last_state.state
+            self._attr_fan_mode = getattr(
+                attributes, ATTR_FAN_MODE, self._attr_fan_mode
+            )
+            self._attr_preset_mode = getattr(
+                attributes, ATTR_PRESET_MODE, self._attr_preset_mode
+            )
+            self._attr_swing_mode = getattr(
+                attributes, ATTR_SWING_MODE, self._attr_swing_mode
+            )
+
+        last_extra_data = await self.async_get_last_climate_data()
+        if last_extra_data is not None:
+            self._attr_target_temperature = last_extra_data.target_temperature
+            self._attr_target_temperature_low = last_extra_data.target_temperature_low
+            self._attr_target_temperature_high = last_extra_data.target_temperature_high
+        self._fill_temperature_attributes(self._get_temperature_conf())
+
+    @property
+    def extra_restore_state_data(self) -> AcRemoteExtraStoredData:
+        """Return specific state data to be restored."""
+        return AcRemoteExtraStoredData(
+            getattr(self, "_attr_target_temperature", None),
+            getattr(self, "_attr_target_temperature_low", None),
+            getattr(self, "_attr_target_temperature_high", None),
+        )
+
+    async def async_get_last_climate_data(self) -> AcRemoteExtraStoredData | None:
+        """Restore climate data"""
+        if (restored_last_extra_data := await self.async_get_last_extra_data()) is None:
+            return None
+        return AcRemoteExtraStoredData.from_dict(restored_last_extra_data.as_dict())
+
+    async def async_added_to_hass(self):
+        """Run when about to be added to hass."""
+        await super().async_added_to_hass()
+
+        await self._async_restore_last_state()
+
+        """Subscribe to current temperature sensor updates"""
+        if getattr(self, "_current_temperature_sensor_entity_id", None) is not None:
+            async_track_state_change_event(
+                self.hass,
+                self._current_temperature_sensor_entity_id,
+                self._async_update_current_temperature_changed,
+            )
+
+            current_temperature_sensor_state = self.hass.states.get(
+                self._current_temperature_sensor_entity_id
+            )
+            self._async_update_current_temperature(current_temperature_sensor_state)
+
+        """Subscribe to current humidity sensor updates"""
+        if getattr(self, "_current_humidity_sensor_entity_id", None) is not None:
+            async_track_state_change_event(
+                self.hass,
+                self._current_humidity_sensor_entity_id,
+                self._async_update_current_humidity_changed,
+            )
+
+            current_humidity_sensor_state = self.hass.states.get(
+                self._current_humidity_sensor_entity_id
+            )
+            self._async_update_current_humidity(current_humidity_sensor_state)
