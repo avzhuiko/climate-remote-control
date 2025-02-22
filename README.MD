@@ -131,6 +131,6 @@ Ex: Command "mode:heat_fan:low_temp:25.0" for device "LG_ES-H126LLA0" not found.
 
 [paypalbadge]: https://img.shields.io/badge/Donate-PayPal-blue?logo=paypal
 
-[buymeacoffee]: https://www.buymeacoffee.com/avzhuikow
+[buymeacoffee]: https://www.buymeacoffee.com/avzhuiko
 
 [buymeacoffeebadge]: https://img.shields.io/badge/Donate-Buy%20me%20a%20coffee-yellow?logo=buy-me-a-coffee
