@@ -118,11 +118,12 @@ class AcRemote(ClimateEntity):
         unique_id = config_entry.unique_id
         self._attr_unique_id = unique_id
 
-        self._grouping_attributes = options[CONF_GROUPING_ATTRIBUTES]
-        self._temperature_conf = options[CONF_TEMPERATURE]
-        self._hvac_modes_conf = options[CONF_HVAC_MODES]
-        self._device = options[CONF_DEVICE]
-        temperature_unit = options[CONF_TEMPERATURE_UNIT]
+        self._grouping_attributes = options.get(CONF_GROUPING_ATTRIBUTES)
+        self._temperature_conf = options.get(CONF_TEMPERATURE)
+        self._hvac_modes_conf = options.get(CONF_HVAC_MODES)
+        self._device = options.get(CONF_DEVICE)
+        self._target = options.get(CONF_TARGET)
+        temperature_unit = options.get(CONF_TEMPERATURE_UNIT)
         if temperature_unit == "c":
             self._attr_temperature_unit = UnitOfTemperature.CELSIUS
         if temperature_unit == "f":
@@ -131,30 +132,20 @@ class AcRemote(ClimateEntity):
         self._attr_hvac_mode = self._attr_hvac_modes[0]
 
         self._fill_temperature_attributes(self._temperature_conf)
-        self._attr_target_temperature_step = options[CONF_TEMPERATURE_STEP]
+        self._attr_target_temperature_step = options.get(CONF_TEMPERATURE_STEP)
 
         # Configure fan modes
-        fan_modes = options[CONF_FAN_MODES]
-        self._attr_fan_modes = fan_modes
-        if len(fan_modes) > 0:
-            self._attr_fan_mode = fan_modes[0]
+        self._attr_fan_mode = None
+        self._attr_fan_modes = options.get(CONF_FAN_MODES)
+        if len(self._attr_fan_modes) > 0:
+            self._attr_fan_mode = self._attr_fan_modes[0]
             self._attr_supported_features |= ClimateEntityFeature.FAN_MODE
-        else:
-            self._attr_fan_mode = None
-            self._attr_fan_modes = None
 
         # Configure preset modes
-        if CONF_PRESET_MODES in options:
-            preset_modes = options[CONF_PRESET_MODES]
-            self._attr_preset_modes = preset_modes
-            if len(preset_modes) > 0:
-                self._attr_preset_mode = preset_modes[0]
-                self._attr_supported_features |= ClimateEntityFeature.PRESET_MODE
-            else:
-                self._attr_preset_mode = None
-        else:
-            self._attr_preset_mode = None
-            self._attr_preset_modes = None
+        self._attr_preset_mode = None
+        self._attr_preset_modes = options.get(CONF_PRESET_MODES)
+        if len(self._attr_preset_modes) > 0:
+            self._attr_supported_features |= ClimateEntityFeature.PRESET_MODE
 
         # Configure swing modes
         swing = options[CONF_SWING]
@@ -165,14 +156,13 @@ class AcRemote(ClimateEntity):
                 self._attr_supported_features |= ClimateEntityFeature.SWING_MODE
         else:
             self._attr_swing_mode = None
-        self._target = options[CONF_TARGET]
 
         # Configure sensors
-        self._current_temperature_sensor_entity_id = getattr(
-            options, CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID, None
+        self._current_temperature_sensor_entity_id = options.get(
+            CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID
         )
-        self._current_humidity_sensor_entity_id = getattr(
-            options, CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID, None
+        self._current_humidity_sensor_entity_id = options.get(
+            CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID
         )
 
         self._attr_device_info = DeviceInfo(
@@ -448,14 +438,12 @@ class RestoreAcRemote(AcRemote, RestoreEntity):
         if last_state is not None:
             attributes = last_state.attributes
             self._attr_hvac_mode = last_state.state
-            self._attr_fan_mode = getattr(
-                attributes, ATTR_FAN_MODE, self._attr_fan_mode
+            self._attr_fan_mode = attributes.get(ATTR_FAN_MODE, self._attr_fan_mode)
+            self._attr_swing_mode = attributes.get(
+                ATTR_SWING_MODE, self._attr_swing_mode
             )
-            self._attr_preset_mode = getattr(
-                attributes, ATTR_PRESET_MODE, self._attr_preset_mode
-            )
-            self._attr_swing_mode = getattr(
-                attributes, ATTR_SWING_MODE, self._attr_swing_mode
+            self._attr_preset_mode = attributes.get(
+                ATTR_PRESET_MODE, self._attr_preset_mode
             )
 
         last_extra_data = await self.async_get_last_climate_data()

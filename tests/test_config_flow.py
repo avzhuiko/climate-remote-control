@@ -20,7 +20,7 @@ from homeassistant.const import (
     CONF_UNIQUE_ID,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResultType, _FlowResultT
+from homeassistant.data_entry_flow import FlowResult, FlowResultType
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -410,7 +410,7 @@ async def test_previously_configured_preset_modes(
 
 async def _go_to_specific_step(
     hass: HomeAssistant, config_entry_id: str, step_id: str
-) -> _FlowResultT:
+) -> FlowResult:
     result = await hass.config_entries.options.async_init(
         config_entry_id, context={"source": "user"}
     )
