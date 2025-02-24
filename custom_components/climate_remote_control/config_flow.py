@@ -1,4 +1,3 @@
-import logging
 from typing import Any
 
 from homeassistant import config_entries
@@ -60,8 +59,6 @@ TEMPERATURE_SCHEMA = vol.Schema(
         vol.Optional(CONF_MAX, default=30.0): vol.Coerce(float),
     }
 )
-
-_LOGGER = logging.getLogger(__name__)
 
 
 class ACRemoteConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -133,7 +130,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     {
                         vol.Required(
                             CONF_DEVICE,
-                            default=self.config_entry.options.get(CONF_DEVICE),
+                            default=self._get_option(CONF_DEVICE),
                         ): cv.string
                     }
                 ),
@@ -160,7 +157,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     ATTR_AREA_ID: area_ids,
                 }
 
-        default_target = self.config_entry.options.get(
+        default_target = self._get_option(
             CONF_TARGET, {ATTR_ENTITY_ID: [], ATTR_DEVICE_ID: [], ATTR_AREA_ID: []}
         )
         if user_input is None or bool(errors):
@@ -206,7 +203,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_temperature(self, user_input: dict[str, Any] | None = None):
         if user_input is None:
-            default_temperature = self.config_entry.options.get(
+            default_temperature = self._get_option(
                 CONF_TEMPERATURE,
                 {
                     CONF_MODE: None,
@@ -236,9 +233,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         ): vol.Coerce(float),
                         vol.Required(
                             CONF_TEMPERATURE_UNIT,
-                            default=self.config_entry.options.get(
-                                CONF_TEMPERATURE_UNIT, "c"
-                            ),
+                            default=self._get_option(CONF_TEMPERATURE_UNIT, "c"),
                         ): selector.SelectSelector(
                             selector.SelectSelectorConfig(
                                 multiple=False,
@@ -249,9 +244,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         ),
                         vol.Required(
                             CONF_TEMPERATURE_STEP,
-                            default=self.config_entry.options.get(
-                                CONF_TEMPERATURE_STEP, 1.0
-                            ),
+                            default=self._get_option(CONF_TEMPERATURE_STEP, 1.0),
                         ): vol.All(vol.Coerce(float), vol.Range(min=0, max=10)),
                     },
                 ),
@@ -271,7 +264,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_swing(self, user_input: dict[str, Any] | None = None):
         if user_input is None:
-            default_swing = self.config_entry.options.get(
+            default_swing = self._get_option(
                 CONF_SWING,
                 {
                     CONF_MODE: None,
@@ -337,7 +330,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                             TEMPERATURE_SCHEMA({CONF_MODE: TemperatureMode.NONE})
                         )
         if user_input is None or bool(errors):
-            default_hvac_modes = self.config_entry.options.get(CONF_HVAC_MODES, {})
+            default_hvac_modes = self._get_option(CONF_HVAC_MODES, {})
             return self.async_show_form(
                 step_id="hvac_modes",
                 data_schema=vol.Schema(
@@ -355,7 +348,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         ),
                         vol.Required(
                             CONF_CAN_DISABLE_ENTITY_FEATURES,
-                            default=self.config_entry.options.get(
+                            default=self._get_option(
                                 CONF_CAN_DISABLE_ENTITY_FEATURES, True
                             ),
                         ): bool,
@@ -376,7 +369,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     {
                         vol.Optional(
                             CONF_MODES,
-                            default=self.config_entry.options.get(CONF_FAN_MODES, []),
+                            default=self._get_option(CONF_FAN_MODES, []),
                         ): selector.SelectSelector(
                             selector.SelectSelectorConfig(
                                 multiple=True,
@@ -406,9 +399,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     {
                         vol.Optional(
                             CONF_GROUPING_ATTRIBUTES,
-                            default=self.config_entry.options.get(
-                                CONF_GROUPING_ATTRIBUTES, []
-                            ),
+                            default=self._get_option(CONF_GROUPING_ATTRIBUTES, []),
                         ): selector.SelectSelector(
                             selector.SelectSelectorConfig(
                                 multiple=True,
@@ -435,7 +426,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     {
                         vol.Optional(
                             CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID,
-                            default=self.config_entry.options.get(
+                            default=self._get_option(
                                 CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID
                             ),
                         ): vol.Any(
@@ -450,7 +441,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         ),
                         vol.Optional(
                             CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID,
-                            default=self.config_entry.options.get(
+                            default=self._get_option(
                                 CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID
                             ),
                         ): vol.Any(
@@ -487,9 +478,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     {
                         vol.Optional(
                             CONF_MODES,
-                            default=self.config_entry.options.get(
-                                CONF_PRESET_MODES, []
-                            ),
+                            default=self._get_option(CONF_PRESET_MODES, []),
                         ): selector.SelectSelector(
                             selector.SelectSelectorConfig(
                                 multiple=True,
@@ -514,4 +503,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_create_entry(
             title=self.config_entry.title,
             data=options | self.result,
+        )
+
+    def _get_option(self, option_name: str, default_value: Any = None) -> Any:
+        return getattr(
+            self.result,
+            option_name,
+            self.config_entry.options.get(option_name, default_value),
         )
