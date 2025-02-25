@@ -26,6 +26,7 @@ from .const import (
     CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID,
     CONF_FAN_MODES,
     CONF_GROUPING_ATTRIBUTES,
+    CONF_GROUPING_ATTRIBUTES_AS_SEQUENCE,
     CONF_HVAC_MODES,
     CONF_MAX,
     CONF_MIN,
@@ -408,11 +409,20 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                                 options=GROUPING_ATTRIBUTES,
                             )
                         ),
+                        vol.Required(
+                            CONF_GROUPING_ATTRIBUTES_AS_SEQUENCE,
+                            default=self._get_option(
+                                CONF_GROUPING_ATTRIBUTES_AS_SEQUENCE, False
+                            ),
+                        ): bool,
                     }
                 ),
             )
 
         self.result[CONF_GROUPING_ATTRIBUTES] = user_input[CONF_GROUPING_ATTRIBUTES]
+        self.result[CONF_GROUPING_ATTRIBUTES_AS_SEQUENCE] = user_input[
+            CONF_GROUPING_ATTRIBUTES_AS_SEQUENCE
+        ]
         if self._is_previously_configured():
             return await self.async_step_init()
         else:
