@@ -55,6 +55,7 @@ CONF_MAX = "max"
 CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID = "current_temperature_sensor_entity_id"
 CONF_CURRENT_HUMIDITY_SENSOR_ENTITY_ID = "current_humidity_sensor_entity_id"
 CONF_GROUPING_ATTRIBUTES = "grouping_attributes"
+CONF_GROUPING_ATTRIBUTES_AS_SEQUENCE = "grouping_attributes_as_sequence"
 GROUPING_ATTRIBUTES = [
     ATTR_HVAC_MODE,
     ATTR_FAN_MODE,

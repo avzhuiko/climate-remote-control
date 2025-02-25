@@ -57,6 +57,7 @@ from .const import (
     CONF_CURRENT_TEMPERATURE_SENSOR_ENTITY_ID,
     CONF_FAN_MODES,
     CONF_GROUPING_ATTRIBUTES,
+    CONF_GROUPING_ATTRIBUTES_AS_SEQUENCE,
     CONF_HVAC_MODES,
     CONF_MAX,
     CONF_MIN,
@@ -102,12 +103,14 @@ class AcRemote(ClimateEntity):
 
     _attr_supported_features = ClimateEntityFeature(0)
 
-    _target: dict[str, Any] = {}
+    _target: dict[str, Any]
     _device: str
-    _temperature_conf: dict[str, Any] = {}
-    _hvac_modes_conf: dict[str, Any] = {}
-    _grouping_attributes: [str] = []
-    _current_temperature_sensor_entity_id: str | None = None
+    _temperature_conf: dict[str, Any]
+    _hvac_modes_conf: dict[str, Any]
+    _grouping_attributes: [str]
+    _grouping_attributes_as_sequence: bool
+    _current_temperature_sensor_entity_id: str | None
+    _current_humidity_sensor_entity_id: str | None
 
     def __init__(
         self,
@@ -119,6 +122,9 @@ class AcRemote(ClimateEntity):
         self._attr_unique_id = unique_id
 
         self._grouping_attributes = options.get(CONF_GROUPING_ATTRIBUTES)
+        self._grouping_attributes_as_sequence = options.get(
+            CONF_GROUPING_ATTRIBUTES_AS_SEQUENCE, False
+        )
         self._temperature_conf = options.get(CONF_TEMPERATURE)
         self._hvac_modes_conf = options.get(CONF_HVAC_MODES)
         self._device = options.get(CONF_DEVICE)
@@ -254,23 +260,27 @@ class AcRemote(ClimateEntity):
             grouping_attributes.remove(ATTR_SWING_MODE)
         return grouping_attributes
 
-    def _get_command(self, key: str) -> str:
+    def _get_commands(self, key: str) -> [str]:
         """Get code by current state and keys"""
         grouping_attributes = self._get_grouping_attributes()
         if key not in grouping_attributes:
-            return self._get_attr_command(key)
+            return [self._get_attr_command(key)]
         commands: [str] = []
         for grouping_key in grouping_attributes:
             commands.append(self._get_attr_command(grouping_key))
-        return "_".join(str(x) for x in commands)
+        if self._grouping_attributes_as_sequence:
+            return commands
+        return ["_".join(str(x) for x in commands)]
 
-    async def _async_call_remote_command(self, command: str, should_learn: bool = True):
+    async def _async_call_remote_command(
+        self, commands: [str], should_learn: bool = True
+    ):
         services = self.hass.services
         _LOGGER.debug(
             "Calling service %s.%s, with command=%s, device=%s, target=%s",
             RM_DOMAIN,
             SERVICE_SEND_COMMAND,
-            command,
+            commands,
             self._device,
             self._target,
         )
@@ -279,9 +289,9 @@ class AcRemote(ClimateEntity):
                 domain=RM_DOMAIN,
                 service=SERVICE_SEND_COMMAND,
                 service_data={
-                    ATTR_COMMAND: command,
+                    ATTR_COMMAND: commands,
                     ATTR_NUM_REPEATS: 1,
-                    ATTR_DELAY_SECS: 0,
+                    ATTR_DELAY_SECS: 1,
                     ATTR_HOLD_SECS: 0,
                     ATTR_DEVICE: self._device,
                 },
@@ -293,7 +303,7 @@ class AcRemote(ClimateEntity):
             if should_learn:
                 _LOGGER.warning(
                     'Command "%s" for device "%s" not found. You should learn it.',
-                    command,
+                    commands,
                     self._device,
                 )
 
@@ -337,25 +347,25 @@ class AcRemote(ClimateEntity):
         temperature: float | None = kwargs.get(ATTR_TEMPERATURE)
         if temperature is not None:
             self._attr_target_temperature = temperature
-            command = self._get_command(ATTR_TEMPERATURE)
+            commands = self._get_commands(ATTR_TEMPERATURE)
             self._reset_preset_mode()
-            await self._async_call_remote_command(command)
+            await self._async_call_remote_command(commands)
             return
         temperature_low: float | None = kwargs.get(ATTR_TARGET_TEMP_LOW)
         temperature_high: float | None = kwargs.get(ATTR_TARGET_TEMP_HIGH)
         if temperature_low is not None and temperature_high is not None:
             self._attr_target_temperature_low = temperature_low
             self._attr_target_temperature_high = temperature_high
-            command = self._get_command(ATTR_TEMPERATURE_RANGE)
+            commands = self._get_commands(ATTR_TEMPERATURE_RANGE)
             self._reset_preset_mode()
-            await self._async_call_remote_command(command)
+            await self._async_call_remote_command(commands)
         else:
             raise ValueError("temperature_low and temperature_high must be provided")
 
     async def async_set_humidity(self, humidity: int) -> None:
         self._attr_target_humidity = humidity
-        command = self._get_command(ATTR_HUMIDITY)
-        await self._async_call_remote_command(command)
+        commands = self._get_commands(ATTR_HUMIDITY)
+        await self._async_call_remote_command(commands)
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         old_mode = self._attr_hvac_mode
@@ -363,28 +373,28 @@ class AcRemote(ClimateEntity):
         self._reset_preset_mode()
         self._fill_temperature_attributes(self._get_temperature_conf())
         if hvac_mode == HVACMode.OFF:
-            await self._async_call_remote_command("off")
+            await self._async_call_remote_command(["off"])
             return
         if hvac_mode != HVACMode.OFF and old_mode == HVACMode.OFF:
-            await self._async_call_remote_command("on", False)
+            await self._async_call_remote_command(["on"], False)
             await asyncio.sleep(1)
-        command = self._get_command(ATTR_HVAC_MODE)
-        await self._async_call_remote_command(command)
+        commands = self._get_commands(ATTR_HVAC_MODE)
+        await self._async_call_remote_command(commands)
 
     async def async_set_swing_mode(self, swing_mode: str) -> None:
         self._attr_swing_mode = swing_mode
-        command = self._get_command(ATTR_SWING_MODE)
-        await self._async_call_remote_command(command)
+        commands = self._get_commands(ATTR_SWING_MODE)
+        await self._async_call_remote_command(commands)
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         self._attr_fan_mode = fan_mode
-        command = self._get_command(ATTR_FAN_MODE)
-        await self._async_call_remote_command(command)
+        commands = self._get_commands(ATTR_FAN_MODE)
+        await self._async_call_remote_command(commands)
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         self._attr_preset_mode = preset_mode
-        command = self._get_command(ATTR_PRESET_MODE)
-        await self._async_call_remote_command(command)
+        commands = self._get_commands(ATTR_PRESET_MODE)
+        await self._async_call_remote_command(commands)
 
     def _reset_preset_mode(self) -> None:
         if (
@@ -418,12 +428,9 @@ class AcRemoteExtraStoredData(ExtraStoredData):
     @classmethod
     def from_dict(cls, restored: dict[str, Any]) -> Self | None:
         """Initialize a stored state from a dict."""
-        try:
-            target_temperature = restored[ATTR_TEMPERATURE]
-            target_temperature_low = restored[ATTR_TARGET_TEMP_LOW]
-            target_temperature_high = restored[ATTR_TARGET_TEMP_HIGH]
-        except KeyError:
-            return None
+        target_temperature = restored.get(ATTR_TEMPERATURE)
+        target_temperature_low = restored.get(ATTR_TARGET_TEMP_LOW)
+        target_temperature_high = restored.get(ATTR_TARGET_TEMP_HIGH)
 
         return cls(target_temperature, target_temperature_low, target_temperature_high)
 

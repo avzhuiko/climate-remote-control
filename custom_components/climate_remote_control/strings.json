@@ -89,10 +89,12 @@
         "title": "Grouping attributes",
         "description": "Choose attributes which are passed to AC together when one of them changes",
         "data": {
-          "grouping_attributes": "Grouping attributes"
+          "grouping_attributes": "Grouping attributes",
+          "grouping_attributes_as_sequence": "Send grouping attributes as sequence"
         },
         "data_description": {
-          "grouping_attributes": "Order of selected attributes is important. It affects on command key. I recommend choose temperature as last attribute if applicable."
+          "grouping_attributes": "Order of selected attributes is important. It affects on command key. Choose temperature as last attribute if applicable",
+          "grouping_attributes_as_sequence": "If this feature is enabled then the commands (one per the grouping attribute) will be sent in sequence"
         }
       },
       "sensors": {
