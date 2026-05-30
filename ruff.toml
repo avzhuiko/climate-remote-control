@@ -1,4 +1,4 @@
-target-version = "py313"
+target-version = "py314"
 
 # Same as Black.
 line-length = 88

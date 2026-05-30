@@ -1,6 +1,7 @@
-from unittest.mock import patch
 import uuid
+from unittest.mock import patch
 
+import pytest
 from homeassistant import config_entries, data_entry_flow
 from homeassistant.components.climate import (
     FAN_HIGH,
@@ -21,7 +22,6 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult, FlowResultType
-import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.climate_remote_control.const import (
@@ -75,7 +75,6 @@ async def test_config_flow(hass: HomeAssistant):
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result["title"] == "my air conditioner"
     assert result["context"][CONF_UNIQUE_ID] == "unique_id_1"
-    assert result["result"]
 
     data = result["data"]
     assert data[CONF_UNIQUE_ID] == "unique_id_1"
@@ -189,7 +188,6 @@ async def test_options_flow_with_new_configuration(hass: HomeAssistant):
 
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result["title"] == "name_test"
-    assert result["result"]
 
     data = result.get("data")
 
